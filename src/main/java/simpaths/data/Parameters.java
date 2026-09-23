@@ -182,6 +182,8 @@ public class Parameters {
     public static double ANNUITY_RATE_OF_RETURN = 0.015;
 
     public static int MIN_HOURS_FULL_TIME_EMPLOYED = 25;    // used to distinguish full-time from part-time employment (needs to be consistent with Labour enum)
+    public static int MIN_HOURS_EMPLOYED = 6;    // minimum weekly hours to count as employed in the initial population; must equal the lower
+                                                // bound of the first positive Labour band, so that no employed person converts to Labour.ZERO
     public static double MIN_HOURLY_WAGE_RATE = 0.0;
     public static double MAX_HOURLY_WAGE_RATE = 75.0;
     public static double MAX_HOURS_WEEKLY_FORMAL_CARE = 150.0;
