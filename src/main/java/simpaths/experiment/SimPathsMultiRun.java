@@ -516,6 +516,11 @@ public class SimPathsMultiRun extends MultiRun {
 		return multiRunMode;
 	}
 
+	/** Whether the random seed is incremented by one for each run after the first. */
+	public static boolean isRandomSeedInnov() {
+		return randomSeedInnov;
+	}
+
 	/** Number of runs this experiment will execute. */
 	public static int getMaxNumberOfRuns() {
 		return maxNumberOfRuns;

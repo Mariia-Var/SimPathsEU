@@ -36,12 +36,20 @@ public class OutputReadme {
 
     private static final DateTimeFormatter TIMESTAMP = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
+    // Set once the README has been written. A multi-run builds a fresh experiment - with a
+    // fresh timestamped output folder - for every run, but ExportCSV fixes its directory
+    // once per JVM (a static final initialised on first use), so every run's CSVs land in
+    // the first run's folder. Writing only once keeps a single README beside them rather
+    // than one per run, each in an otherwise empty folder.
+    private static boolean written = false;
+
     private OutputReadme() {}
 
     /**
      *
      * WRITE README.md INTO THE CSV OUTPUT DIRECTORY
      *
+     * Only the first call in a JVM writes anything; see {@link #written}.
      * Failure to write the README must never interrupt a simulation, so all errors are
      * logged rather than propagated.
      *
@@ -49,11 +57,15 @@ public class OutputReadme {
      * @param model the simulation manager holding the run configuration
      *
      */
-    public static void write(SimPathsCollector collector, SimPathsModel model) {
+    public static synchronized void write(SimPathsCollector collector, SimPathsModel model) {
 
+        if (written)
+            return;
         Path directory = csvDirectory();
-        if (directory != null)
+        if (directory != null) {
             write(collector, model, directory);
+            written = true;
+        }
     }
 
     /**
@@ -114,12 +126,27 @@ public class OutputReadme {
 
     private static void writeRunConfiguration(PrintWriter out, SimPathsModel model) {
 
+        boolean multiRun = SimPathsMultiRun.isMultiRunMode() && SimPathsMultiRun.getMaxNumberOfRuns() > 1;
         String runsPlanned = SimPathsMultiRun.isMultiRunMode()
                 ? String.valueOf(SimPathsMultiRun.getMaxNumberOfRuns())
                 : "1 (single run)";
-        String seed = Boolean.TRUE.equals(model.getFixRandomSeed())
-                ? String.valueOf(model.getRandomSeedIfFixed())
-                : "not fixed";
+
+        // The README is written by the first run, so the seed held by the model is the first
+        // run's. SimPathsMultiRun.iterateParameters() adds one to it before each later run
+        // unless randomSeedInnov is switched off, so run k uses first + k - 1.
+        String seed;
+        if (!Boolean.TRUE.equals(model.getFixRandomSeed())) {
+            seed = "not fixed";
+        } else {
+            long first = model.getRandomSeedIfFixed();
+            if (!multiRun)
+                seed = String.valueOf(first);
+            else if (SimPathsMultiRun.isRandomSeedInnov())
+                seed = first + " to " + (first + SimPathsMultiRun.getMaxNumberOfRuns() - 1)
+                        + " (run *k* uses " + first + " + *k* - 1)";
+            else
+                seed = first + " (the same for every run)";
+        }
 
         out.println("## Run configuration");
         out.println();
@@ -129,7 +156,7 @@ public class OutputReadme {
         out.println("| Population size | " + model.getPopSize() + " |");
         out.println("| Start year | " + model.getStartYear() + " |");
         out.println("| End year | " + model.getEndYear() + " |");
-        out.println("| Random seed | " + seed + " |");
+        out.println((multiRun ? "| Random seeds | " : "| Random seed | ") + seed + " |");
         out.println("| Base price year | " + Parameters.BASE_PRICE_YEAR + " |");
         out.println("| Training data | " + (Parameters.trainingFlag ? "yes" : "no") + " |");
         out.println();
