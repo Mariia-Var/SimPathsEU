@@ -1,58 +1,96 @@
-# Integration-test golden files — Spain (ES), training-data baseline
+# SimPaths simulation output
 
-Golden CSVs that `RunSimPathsESIntegrationTest` diffs against when
-`parameter_args.trainingFlag: true` in `config/test_run_ES.yml` (the default).
+Country: **ES**  
+Written: 2026-09-29 13:07:34
 
-These CSVs **are committed**, because the training data is shareable. This is the
-CI-ready regression baseline that every PR is diffed against — the exact counterpart
-of [`../expected_training_PL/`](../expected_training_PL/README.md).
+This folder holds the CSV output of a simulation experiment. The settings below
+are those it was executed under; they are recorded here because output folders
+are kept long after the configuration that produced them has moved on.
 
-| | training data | real data |
-|---|---|---|
-| output folder | `output/INTEGRATION_TESTS_TRAINING_ES/` | `output/INTEGRATION_TESTS_ES/` |
-| golden files | `expected_training_ES/` (committed) | [`../expected_ES/`](../expected_ES/README.md) (gitignored) |
+## Run configuration
 
-Inputs: `input/ES/InitialPopulations/training/` (2011–2024) and
-`input/ES/EUROMODoutput/training/` (2005–2025), both committed.
+| Setting | Value |
+|---|---|
+| Runs in this experiment | 2 |
+| Population size | 20000 |
+| Start year | 2019 |
+| End year | 2022 |
+| Random seeds | 100 to 101 (run *k* uses 100 + *k* - 1) |
+| Base price year | 2015 |
+| Training data | yes |
 
-## Regenerating the baseline
+**This run used the training-data subset.** Results are for development only and
+should not be interpreted as estimates for this country.
 
-Do this only when you have **intentionally** changed model behaviour and confirmed
-the new output is correct. The new CSVs are committed and become the reference every
-PR is diffed against.
+## Model options
 
-```sh
-mvn clean package -DskipTests
-mvn verify -Dit.test=RunSimPathsESIntegrationTest
+| Option | State |
+|---|---|
+| Bootstrap all regression coefficients | on |
+| Intertemporal optimisations | off |
+| Project mortality | on |
+| Alignment: population | off |
+| Alignment: fertility | off |
+| Alignment: cohabitation | off |
+| Alignment: in school | off |
+| Alignment: employment | off |
+| Alignment: retirement | off |
+| Alignment: disability | off |
+| Alignment: education | off |
 
-SRC=output/INTEGRATION_TESTS_TRAINING_ES/csv
-DST=src/test/java/simpaths/integrationtest/expected_training_ES
-cp "$SRC/WealthIncomeStatistics.csv" "$SRC/DemographicStatistics.csv" \
-   "$SRC/HealthStatistics.csv" "$SRC/HealthByGender.csv" \
-   "$SRC/LabourStatistics.csv" "$DST/"
-git add "$DST"/*.csv
+Diagnostics for the alignment routines that ran are in `AlignmentStatistics.csv`,
+which reports the adjustment factor, the simulated share and the target share each year.
 
-mvn verify -Dit.test=RunSimPathsESIntegrationTest   # confirm green, then commit
-```
+## Files in this folder
 
-`AlignmentStatistics.csv` is only checked for existence, not diffed.
+Age bands used by the annual statistics are 18-29, 30-54 and 55-74.
 
-## When the diff fires on someone else's PR
+### `WealthIncomeStatistics.csv`
 
-The training-data baseline is the repo's contract: if the diff fires on a PR, the
-change moved simulated output and the author needs to justify it. If the change is
-intentional, regenerate and commit the baseline as above; if not, the diff is exactly
-the signal that caught a regression.
+*one row per year*
 
-## Caveat on the numbers
+Income and wealth. Gini coefficients for market and equivalised disposable income, income percentiles, median equivalised disposable income and the S-Index, plus labour, investment and pension income, investment losses, disposable income gross of losses, and wealth by age band.
 
-The ES baseline pins *reproducibility*, not correctness. Several ES inputs are still
-Polish clones — notably `input/ES/reg_labourSupplyUtility.xlsx`,
-`align_educLevel.xlsx` and `social_care_parameters.xlsx` — so ES levels are not yet
-meaningful. The test's job is to catch unintended movement, and to catch ES breaking
-outright when country-generic code changes.
+### `DemographicStatistics.csv`
 
-## Comparison rules
+*one row per year*
 
-Same hybrid tolerance as every other baseline — see
-[`../expected_PL/README.md`](../expected_PL/README.md#comparison-rules).
+Demographics by age band: share cohabiting, average dependent children, and population counts. The population counts are the denominator for the age-band statistics reported in the other files.
+
+### `HealthStatistics.csv`
+
+*one row per year*
+
+Population health by age band: average self-rated health and the share reporting a long-term disability.
+
+### `LabourStatistics.csv`
+
+*one row per year*
+
+Labour market outcomes. Employment and unemployment shares for ages 16-64 and the transition rates between them, plus full-time and part-time shares by age band.
+
+### `AlignmentStatistics.csv`
+
+*one row per year*
+
+Alignment diagnostics: adjustment factors together with the simulated and target shares for each aligned process.
+
+### `HealthByGender.csv`
+
+*three rows per year*
+
+Self-rated health and disability for ages 16-64: the share in each self-rated health category (poor, fair, good, very good, excellent), the share long-term sick or disabled, and the observation counts each is based on. Written once per gender group each year - Total, Male and Female - identified by the `demSex` column.
+
+
+## Reading the files
+
+- Every file opens with `run`, `time` and an `id_<name>` column. `run` identifies the
+  simulation run - where several runs share an output folder they all appear in the same
+  file - `time` is the simulated year, and the id column is a constant for the annual
+  statistics.
+- Remaining columns are ordered alphabetically by variable name, not by topic.
+- Financial variables are in real prices of the base price year given above,
+  and are monthly and equivalised unless the variable name says otherwise.
+- Variables carrying `WeeklyPerWorker` are weekly, averaged over workers rather than
+  over the population, and are not equivalised.
+
