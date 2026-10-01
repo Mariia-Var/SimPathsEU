@@ -201,6 +201,8 @@ public class Person implements EventListener, IDoubleSource, IIntSource, Weight,
     @Transient private Double labWageRegressRandomCompoponentEmp;
     @Transient private Double labWageRegressRandomCompoponentNotEmp;
     @Transient private Map<Labour, Integer> personContinuousHoursLabourSupplyMap = new EnumMap<>(Labour.class);
+    @Transient private boolean evaluatingLabourChoice = false; // true while the benefit unit scores candidate hours brackets; see Parameters.useRepresentativeHours
+    @Transient private Double labHrsDrawYear; // this year's position within the hours bracket, used when Parameters.redrawHoursEachYear is true
 
     // local variables interact with regression models
     @Transient private Integer i_demYear;
@@ -5019,8 +5021,25 @@ public class Person implements EventListener, IDoubleSource, IIntSource, Weight,
     public void setPersonContinuousHoursLabourSupplyMap(Map<Labour, Integer> personContinuousHoursLabourSupplyMap) {
         this.personContinuousHoursLabourSupplyMap = personContinuousHoursLabourSupplyMap;
     }
-    public double getLabourSupplySingleDraw() {
-        return innovations.getSingleDrawDoubleInnov(0);
+    public double getLabourSupplyHoursDraw() {
+        if (Parameters.redrawHoursEachYear && labHrsDrawYear != null)
+            return labHrsDrawYear;
+        return innovations.getSingleDrawDoubleInnov(0); // lifetime draw
+    }
+    /**
+     * Refreshes the yearly hours draw when Parameters.redrawHoursEachYear is true. Called at the start of the
+     * labour-supply choice, so hours realised last year are unchanged by the draw until the new choice is made.
+     * Innovation 19 is fixed within the year, so repeated calls in the same year return the same draw.
+     */
+    public void updateLabourSupplyHoursDraw() {
+        if (Parameters.redrawHoursEachYear)
+            labHrsDrawYear = innovations.getDoubleDraw(19);
+    }
+    public boolean isEvaluatingLabourChoice() {
+        return evaluatingLabourChoice;
+    }
+    public void setEvaluatingLabourChoice(boolean evaluatingLabourChoice) {
+        this.evaluatingLabourChoice = evaluatingLabourChoice;
     }
     public double getBenefitUnitRandomUniform() {return innovations.getDoubleDraw(31);}
 

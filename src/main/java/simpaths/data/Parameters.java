@@ -163,6 +163,9 @@ public class Parameters {
     public static int MAX_LABOUR_HOURS_IN_WEEK = 60;
     public static int HOURS_IN_WEEK = 24*7; // currently, 24 hours per day is used to calculate leisure in labour supply
     public static boolean USE_CONTINUOUS_LABOUR_SUPPLY_HOURS = true; // If true, a random number of hours of weekly labour supply within each bracket will be generated. Otherwise, each discrete choice of labour supply corresponds to a fixed number of hours of labour supply, which is the same for all persons
+    public static boolean USE_MIDPOINT_HOURS = false; // Applies only to realised hours of brackets with Labour.spreadRealisedHours false: if true, they realise at the bracket midpoint (min + max) / 2 instead of their representative hours. Choice-stage (utility) evaluation always uses representative hours for these brackets; brackets that spread hours are unaffected
+    public static boolean useRepresentativeHours = true; // If true, the labour-supply utility optimisation evaluates each hours bracket at its representative hours (Labour.getRepresentativeHours) rather than at the person's drawn hours; drawn hours apply only once the bracket has been chosen
+    public static boolean redrawHoursEachYear = false; // If true, the position of a person's hours within their bracket is redrawn every year (at the labour-supply choice); otherwise one draw is kept for life
 
     public static int AGE_TO_BECOME_RESPONSIBLE = 18;            // Age become reference person of own benefit unit
     public static int AGE_TO_BECOME_SEMI_RESPONSIBLE = 16;      //Age used in health processes H1, H2
