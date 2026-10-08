@@ -2082,11 +2082,6 @@ public class Person implements EventListener, IDoubleSource, IIntSource, Weight,
         Constant, 						// For the constant (intercept) term of the regression
         D_Children,
         D_Children_L1,
-        D_Children_2under,				// Indicator (dummy variables for presence of children of certain ages in the benefitUnit)
-        D_Children_3_6,
-        D_Children_7_12,
-        D_Children_13_17,
-        D_Children_18over,				//Currently this will return 0 (false) as children leave home when they are 18
         D_Econ_benefits,
         D_Home_owner,
         Dhh_owned_L1,
@@ -2852,21 +2847,6 @@ public class Person implements EventListener, IDoubleSource, IIntSource, Weight,
                 else return 0.;
             }
 
-            case D_Children_2under -> {
-                return (double) benefitUnit.getIndicatorChildren(0, 2).ordinal();
-            }
-            case D_Children_3_6 -> {
-                return (double) benefitUnit.getIndicatorChildren(3, 6).ordinal();
-            }
-            case D_Children_7_12 -> {
-                return (double) benefitUnit.getIndicatorChildren(7, 12).ordinal();
-            }
-            case D_Children_13_17 -> {
-                return (double) benefitUnit.getIndicatorChildren(13, 17).ordinal();
-            }
-            case D_Children_18over -> {
-                return (double) benefitUnit.getIndicatorChildren(18, 99).ordinal();
-            }
             case D_Children -> {
                 return (getNumberChildrenAll() > 0) ? 1. : 0.;
             }

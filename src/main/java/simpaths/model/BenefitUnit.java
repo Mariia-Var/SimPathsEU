@@ -1804,17 +1804,11 @@ public class BenefitUnit implements EventListener, IDoubleSource, Weight, Compar
         HoursFemale,
         HoursFemaleByAgeFemale,
         HoursFemaleByAgeFemaleSquared,
-        HoursFemaleByDchildren2under,
-        HoursFemaleByDchildren3_6,
-        HoursFemaleByDchildren7_12,
-        HoursFemaleByDchildren13_17,
         HoursFemaleByDelderly,
 
         FixedCostMaleByNumberChildren,
-        FixedCostMaleByDchildren2under,
 
         FixedCostFemaleByNumberChildren,
-        FixedCostFemaleByDchildren2under,
         FixedCostByHighEducation,
 
         //New set of regressors for LS models from Zhechun:
@@ -1823,7 +1817,6 @@ public class BenefitUnit implements EventListener, IDoubleSource, Weight, Compar
         IncomeDiv100_MeanPartnersAgeDiv100,        //Income divided by 100 interacted with mean age of male and female in the household divided by 100
         IncomeDiv100_MeanPartnersAgeSqDiv10000,     //Income divided by 100 interacted with square of mean age of male and female in the household divided by 100
         IncomeDiv100_NChildren017,                 //Income divided by 100 interacted with the number of children aged 0-17
-        IncomeDiv100_DChildren2Under,            //Income divided by 100 interacted with dummy for presence of children aged 0-2 in the household
         IncomeDiv100_EL4,
         IncomeDiv100_EL7,
         MaleLeisure,                            //24*7 - labour supply weekly for male
@@ -1834,7 +1827,6 @@ public class BenefitUnit implements EventListener, IDoubleSource, Weight, Compar
         MaleLeisure_AgeDiv100,
         MaleLeisure_AgeSqDiv10000,
         MaleLeisure_NChildren017,
-        MaleLeisure_DChildren2Under,
         MaleLeisure_MaleDeh_c3_Low,
         MaleLeisure_MaleDeh_c3_Medium,
 
@@ -1848,7 +1840,6 @@ public class BenefitUnit implements EventListener, IDoubleSource, Weight, Compar
         FemaleLeisure_AgeDiv100,
         FemaleLeisure_AgeSqDiv10000,
         FemaleLeisure_NChildren017,
-        FemaleLeisure_DChildren2Under,
         FemaleLeisure_FemaleDeh_c3_Low,
         FemaleLeisure_FemaleDeh_c3_Medium,
 
@@ -1860,25 +1851,17 @@ public class BenefitUnit implements EventListener, IDoubleSource, Weight, Compar
         FixedCostFemale_NorthernRegions,
         FixedCostFemale_SouthernRegions,
         FixedCostMale_NChildren017,
-        FixedCostMale_DChildren2Under,
         FixedCostFemale_NChildren017,
-        FixedCostFemale_DChildren2Under,
 
         MaleHoursAbove40,
         FemaleHoursAbove40,
 
         //Additional regressors for single female or single male benefitUnits:
 
-        MaleLeisure_DChildren1317, //Male leisure interacted with dummy for presence of children aged 13-17
-        MaleLeisure_DChildren712,  //Male leisure interacted with dummy for presence of children aged 7 - 12
-        MaleLeisure_DChildren36,   //Male leisure interacted with dummy for presence of children aged 3 - 6
         MaleLeisure_DChildren017,  //Male leisure interacted with dummy for presence of children aged 0 - 17
         FixedCostMale_Dlltsdsp,    //Fixed cost interacted with dummy for partner being long-term sick or disabled
         FixedCostMale_Lesspc3_Student, //Fixed cost interacted with dummy for partner being a student
 
-        FemaleLeisure_DChildren1317, //Male leisure interacted with dummy for presence of children aged 13-17
-        FemaleLeisure_DChildren712,  //Male leisure interacted with dummy for presence of children aged 7 - 12
-        FemaleLeisure_DChildren36,   //Male leisure interacted with dummy for presence of children aged 3 - 6
         FemaleLeisure_DChildren017,  //Male leisure interacted with dummy for presence of children aged 0 - 17
         FixedCostFemale_Dlltsdsp,    //Fixed cost interacted with dummy for partner being long-term sick or disabled
         FixedCostFemale_Lesspc3_Student, //Fixed cost interacted with dummy for partner being a student
@@ -1889,7 +1872,6 @@ public class BenefitUnit implements EventListener, IDoubleSource, Weight, Compar
         IncomeDiv100_MaleAgeDiv100,
         IncomeDiv100_MaleAgeSqDiv10000,
         IncomeDiv100_dnc,
-        IncomeDiv100_dnc02,
         Region2_10,
         Region3_10,
         Region2_20,
@@ -2012,8 +1994,9 @@ public class BenefitUnit implements EventListener, IDoubleSource, Weight, Compar
         AlignmentFixedCostMen,
         MaleLeisure_dnc,
         FemaleLeisure_dnc,
-        MaleLeisure_dnc02,
         FemaleLeisure_dnc02,
+        MaleLeisure_ChildAge2,      //Male leisure interacted with dummy for presence of children aged 0-2 (ES)
+        FemaleLeisure_ChildAge2,    //Female leisure interacted with dummy for presence of children aged 0-2 (ES)
         IncomeDiv100_FemaleAgeDiv100,
         IncomeDiv100_FemaleAgeSqDiv10000,
         North_1,
@@ -3382,10 +3365,6 @@ public class BenefitUnit implements EventListener, IDoubleSource, Weight, Compar
                 return (getDisposableIncomeMonthlyUpratedToBasePriceYear() -
                         getNonDiscretionaryExpenditureMonthlyUpratedToBasePriceYear()) * (double)getNumberChildren(0,17) * 1.e-2;
             }
-            case IncomeDiv100_DChildren2Under -> {            //Income divided by 100 interacted with dummy for presence of children aged 0-2 in the household
-                return (getDisposableIncomeMonthlyUpratedToBasePriceYear() -
-                        getNonDiscretionaryExpenditureMonthlyUpratedToBasePriceYear()) * getIndicatorChildren(0,2).ordinal() * 1.e-2;
-            }
 
             case MaleLeisure -> {                            //24*7 - labour supply weekly for male
                 return Parameters.HOURS_IN_WEEK - getMale().getLabourSupplyHoursWeekly();
@@ -3405,9 +3384,6 @@ public class BenefitUnit implements EventListener, IDoubleSource, Weight, Compar
             }
             case MaleLeisure_NChildren017, MaleLeisure_dnc -> {
                 return (Parameters.HOURS_IN_WEEK - getMale().getLabourSupplyHoursWeekly()) * (double)getNumberChildren(0,17);
-            }
-            case MaleLeisure_DChildren2Under -> {
-                return (Parameters.HOURS_IN_WEEK - getMale().getLabourSupplyHoursWeekly()) * getIndicatorChildren(0,2).ordinal();
             }
             case MaleLeisure_MaleDeh_c3_Low -> {
                 if(getMale().getDeh_c4().equals(Education.Low) || getMale().getDeh_c4().equals(Education.NotAssigned)) {
@@ -3445,9 +3421,6 @@ public class BenefitUnit implements EventListener, IDoubleSource, Weight, Compar
             }
             case FemaleLeisure_NChildren017, FemaleLeisure_dnc -> {
                 return (Parameters.HOURS_IN_WEEK - getFemale().getLabourSupplyHoursWeekly()) * (double)getNumberChildren(0,17);
-            }
-            case FemaleLeisure_DChildren2Under -> {
-                return (Parameters.HOURS_IN_WEEK - getFemale().getLabourSupplyHoursWeekly()) * getIndicatorChildren(0,2).ordinal();
             }
             case FemaleLeisure_FemaleDeh_c3_Low -> {
                 if(getFemale().getDeh_c4().equals(Education.Low) || getFemale().getDeh_c4().equals(Education.NotAssigned)) {
@@ -3487,19 +3460,9 @@ public class BenefitUnit implements EventListener, IDoubleSource, Weight, Compar
                     return getNumberChildren(0,17);
                 } else return 0.;
             }
-            case FixedCostMale_DChildren2Under -> {
-                if(getMale().getLabourSupplyHoursWeekly() > 0) {
-                    return getIndicatorChildren(0,2).ordinal();
-                } else return 0.;
-            }
             case FixedCostFemale_NChildren017 -> {
                 if(getFemale().getLabourSupplyHoursWeekly() > 0) {
                     return getNumberChildren(0,17);
-                } else return 0.;
-            }
-            case FixedCostFemale_DChildren2Under -> {
-                if(getFemale().getLabourSupplyHoursWeekly() > 0) {
-                    return getIndicatorChildren(0,2).ordinal();
                 } else return 0.;
             }
             case MaleHoursAbove40 -> {
@@ -3513,15 +3476,6 @@ public class BenefitUnit implements EventListener, IDoubleSource, Weight, Compar
                 } else return 0.;
                 //Additional regressors for single female or single male benefitUnits:
                 //Note: couples in which one person is not at risk of work have utility set according to the process for singles
-            }
-            case MaleLeisure_DChildren1317 -> { //Male leisure interacted with dummy for presence of children aged 13-17
-                return (Parameters.HOURS_IN_WEEK - getMale().getLabourSupplyHoursWeekly()) * getIndicatorChildren(13,17).ordinal();
-            }
-            case MaleLeisure_DChildren712 -> {  //Male leisure interacted with dummy for presence of children aged 7 - 12
-                return (Parameters.HOURS_IN_WEEK - getMale().getLabourSupplyHoursWeekly()) * getIndicatorChildren(7,12).ordinal();
-            }
-            case MaleLeisure_DChildren36 -> {   //Male leisure interacted with dummy for presence of children aged 3 - 6
-                return (Parameters.HOURS_IN_WEEK - getMale().getLabourSupplyHoursWeekly()) * getIndicatorChildren(3,6).ordinal();
             }
             case MaleLeisure_DChildren017 -> {  //Male leisure interacted with dummy for presence of children aged 0 - 17
                 if(getNumberChildren(0,17) > 0) { //Instead of creating a new variable, use number of children aged 0 - 17
@@ -3543,15 +3497,6 @@ public class BenefitUnit implements EventListener, IDoubleSource, Weight, Compar
                     } else return 0.;
                 } else return 0.;
 
-            }
-            case FemaleLeisure_DChildren1317 -> { //Male leisure interacted with dummy for presence of children aged 13-17
-                return (Parameters.HOURS_IN_WEEK - getFemale().getLabourSupplyHoursWeekly()) * getIndicatorChildren(13,17).ordinal();
-            }
-            case FemaleLeisure_DChildren712 -> {  //Male leisure interacted with dummy for presence of children aged 7 - 12
-                return (Parameters.HOURS_IN_WEEK - getFemale().getLabourSupplyHoursWeekly()) * getIndicatorChildren(7,12).ordinal();
-            }
-            case FemaleLeisure_DChildren36 -> {   //Male leisure interacted with dummy for presence of children aged 3 - 6
-                return (Parameters.HOURS_IN_WEEK - getFemale().getLabourSupplyHoursWeekly()) * getIndicatorChildren(3,6).ordinal();
             }
             case FemaleLeisure_DChildren017 -> {  //Male leisure interacted with dummy for presence of children aged 0 - 17
                 if(getNumberChildren(0,17) > 0) { //Instead of creating a new variable, use number of children aged 0 - 17
@@ -3644,18 +3589,6 @@ public class BenefitUnit implements EventListener, IDoubleSource, Weight, Compar
             case HoursFemaleByAgeFemaleSquared -> {
                 return getFemale().getLabourSupplyHoursWeekly() * getFemale().getDag() * getFemale().getDag() * 1.e-2;
             }
-            case HoursFemaleByDchildren2under -> {
-                return getFemale().getLabourSupplyHoursWeekly() * getIndicatorChildren(0,2).ordinal();
-            }
-            case HoursFemaleByDchildren3_6 -> {
-                return getFemale().getLabourSupplyHoursWeekly() * getIndicatorChildren(3,6).ordinal();
-            }
-            case HoursFemaleByDchildren7_12 -> {
-                return getFemale().getLabourSupplyHoursWeekly() * getIndicatorChildren(7,12).ordinal();
-            }
-            case HoursFemaleByDchildren13_17 -> {
-                return getFemale().getLabourSupplyHoursWeekly() * getIndicatorChildren(13,17).ordinal();
-            }
             case HoursFemaleByDelderly -> {
                 return 0.;        //Our model doesn't take account of elderly (as people move out of parental home when 18 years old, and we do not provide a mechanism for parents to move back in.
             }
@@ -3668,24 +3601,12 @@ public class BenefitUnit implements EventListener, IDoubleSource, Weight, Compar
                     return - getNumberChildrenAll();        //Return negative as costs appear negative in utility function equation
                 } else return 0.;
 
-            }
-            case FixedCostMaleByDchildren2under -> {
-                if(getMale().getLabourSupplyHoursWeekly() > 0) {
-                    return - getIndicatorChildren(0,2).ordinal();        //Return negative as costs appear negative in utility function equation
-                } else return 0.;
-
                 //The following regressors only apply when the female hours worked is greater than 0
 
             }
             case FixedCostFemaleByNumberChildren -> {
                 if(getFemale().getLabourSupplyHoursWeekly() > 0) {
                     return - getNumberChildrenAll();        //Return negative as costs appear negative in utility function equation
-                } else return 0.;
-
-            }
-            case FixedCostFemaleByDchildren2under -> {
-                if(getFemale().getLabourSupplyHoursWeekly() > 0) {
-                    return - getIndicatorChildren(0,2).ordinal();        //Return negative as costs appear negative in utility function equation
                 } else return 0.;
 
                 //Only appears in regressions for Singles not Couples.  Applies when the single person in the household has hours worked > 0
@@ -3719,10 +3640,6 @@ public class BenefitUnit implements EventListener, IDoubleSource, Weight, Compar
                 return (getDisposableIncomeMonthlyUpratedToBasePriceYear() -
                         getNonDiscretionaryExpenditureMonthlyUpratedToBasePriceYear()) * getFemale().getDag() * getFemale().getDag() * 1.e-6;
             }
-            case IncomeDiv100_dnc02 -> {
-                return (getDisposableIncomeMonthlyUpratedToBasePriceYear() -
-                        getNonDiscretionaryExpenditureMonthlyUpratedToBasePriceYear()) * getIndicatorChildren(0,2).ordinal() * 1.e-2;
-            }
 
 
 
@@ -3732,10 +3649,10 @@ public class BenefitUnit implements EventListener, IDoubleSource, Weight, Compar
             case AlignmentFixedCostWomen -> {
                 return (getFemale() != null && (!getFemale().getLabourSupplyWeekly().equals(Labour.ZERO))) ? 1. :0.; // Note != ZERO condition
             }
-            case MaleLeisure_dnc02 -> {
+            case MaleLeisure_ChildAge2 -> {
                 return (Parameters.HOURS_IN_WEEK - getMale().getLabourSupplyHoursWeekly()) * getIndicatorChildren(0,2).ordinal();
             }
-            case FemaleLeisure_dnc02 -> {
+            case FemaleLeisure_dnc02, FemaleLeisure_ChildAge2 -> {
                 return (Parameters.HOURS_IN_WEEK - getFemale().getLabourSupplyHoursWeekly()) * getIndicatorChildren(0,2).ordinal();
 
             }
@@ -4223,16 +4140,7 @@ public class BenefitUnit implements EventListener, IDoubleSource, Weight, Compar
         return nChildren;
     }
     public Indicator getIndicatorChildren(int minAge, int maxAge) {
-        Indicator flag = Indicator.False;
-        if (model==null) {
-            for (int aa=minAge; aa<=maxAge; aa++) {
-                if (getNumberChildrenByAge(aa) > 0) {
-                    flag = Indicator.True;
-                    break;
-                }
-            }
-        }
-        return flag;
+        return (getNumberChildren(minAge, maxAge) > 0) ? Indicator.True : Indicator.False;
     }
     public Integer getNumberChildrenAll_lag1() {
         return demNChildAllL1;
