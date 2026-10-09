@@ -498,6 +498,10 @@ public class SimPathsModel extends AbstractSimulationManager implements EventLis
 
         // EDUCATION MODULE
         // Documentation: diagram "SimPathsEU education module - MR2"
+        // Quintiles of co-resident parents' lagged income (E1a regressors Parents_ypnb_Q*_L1); needed by the
+        // in-school alignment as well as by InSchool itself
+        yearlySchedule.addEvent(this, Processes.ParentsIncomeQuintiles);
+
         // In School alignment — runs before InSchool decisions so the adjustment applies in the same year
         yearlySchedule.addEvent(this, Processes.InSchoolAlignment);
 
@@ -746,6 +750,7 @@ public class SimPathsModel extends AbstractSimulationManager implements EventLis
         EducationLevelAlignment,
 
         //Other processes
+        ParentsIncomeQuintiles,
         Timer,
         UpdateParameters,
         RationalOptimisation,
@@ -833,6 +838,10 @@ public class SimPathsModel extends AbstractSimulationManager implements EventLis
                     fertilityAlignment(); //Then align to meet the numbers implied by population projections by region
                     if (commentsOn) log.info("Fertility alignment complete.");
                 }
+            }
+            case ParentsIncomeQuintiles -> {
+
+                updateParentsIncomeQuintiles();
             }
             case InSchoolAlignment -> {
 
@@ -1337,6 +1346,51 @@ public class SimPathsModel extends AbstractSimulationManager implements EventLis
                     simulatedNumber ++;
                 }
             }
+        }
+    }
+
+
+    /**
+     * Assigns each person the quintile of their co-resident parents' lagged non-benefit income.
+     * Replicates the ES estimation (01_reg_education_ES.do): quintiles are cut each year with Stata's xtile,
+     * unweighted, over everyone aged 15+ with a co-resident parent at t-1; persons without one get none.
+     */
+    private void updateParentsIncomeQuintiles() {
+
+        List<Person> sample = new ArrayList<>();
+        for (Person person : persons) {
+            person.setParentsYpnbQuintileL1(null);
+            if (person.getDag() >= 15 && person.getParentsYpnbL1() != null)
+                sample.add(person);
+        }
+        if (sample.isEmpty())
+            return;
+
+        double[] values = new double[sample.size()];
+        for (int ii = 0; ii < values.length; ii++)
+            values[ii] = sample.get(ii).getParentsYpnbL1();
+        Arrays.sort(values);
+
+        // Stata _pctile default definition: with P = n*p/100, the percentile is x(P) if P is not an
+        // integer (rounded up), and the mean of x(P) and x(P+1) if it is
+        int nn = values.length;
+        double[] cutoffs = new double[4];
+        for (int qq = 1; qq <= 4; qq++) {
+            long numerator = (long) nn * qq * 20;
+            int pos = (int) (numerator / 100);
+            if (numerator % 100 == 0)
+                cutoffs[qq-1] = (pos < nn) ? 0.5 * (values[pos-1] + values[pos]) : values[nn-1];
+            else
+                cutoffs[qq-1] = values[pos];
+        }
+
+        Ydses_c5[] quintiles = {Ydses_c5.Q1, Ydses_c5.Q2, Ydses_c5.Q3, Ydses_c5.Q4, Ydses_c5.Q5};
+        for (Person person : sample) {
+            double value = person.getParentsYpnbL1();
+            int group = 0;
+            while (group < 4 && value > cutoffs[group])
+                group++;    // xtile: value <= k-th cut-off falls in group k
+            person.setParentsYpnbQuintileL1(quintiles[group]);
         }
     }
 

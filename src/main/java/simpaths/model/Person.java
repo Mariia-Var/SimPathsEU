@@ -167,6 +167,9 @@ public class Person implements EventListener, IDoubleSource, IIntSource, Weight,
     @Transient private Integer demPartnerNYearL1; //Lag(1) of number of years in partnership
     private Double yNonBenPersGrossMonth; // asinh of personal non-benefit income per month
     @Transient private Double yNonBenPersGrossMonthL1; //Lag(1) of gross personal non-benefit income
+    @Transient private boolean parentsKnownL1; //Lag(1): a mother or father lived in the same household (Parents_known_L1)
+    @Transient private Double parentsYpnbL1; //Lag(1) asinh of co-resident parents' summed non-benefit income; null if none
+    @Transient private Ydses_c5 parentsYpnbQuintileL1; //Quintile of parentsYpnbL1, cut each year by SimPathsModel; null if none
     private Double yPersDispMonth; // real personal monthly disposable income (from initial population)
     private Double yMiscPersGrossMonth; // asinh of non-employment non-benefit income per month (capital and pension)
     private Double yCapitalPersMonth; // asinh of capital income per month
@@ -407,6 +410,8 @@ public class Person implements EventListener, IDoubleSource, IIntSource, Weight,
         demPartnerStatusL1 = originalPerson.demPartnerStatusL1;
         yNonBenPersGrossMonth = originalPerson.getYpnbihs_dv();
         yNonBenPersGrossMonthL1 = originalPerson.yNonBenPersGrossMonthL1;
+        parentsKnownL1 = originalPerson.parentsKnownL1;
+        parentsYpnbL1 = originalPerson.parentsYpnbL1;
         yMiscPersGrossMonth = Objects.requireNonNullElse(originalPerson.yMiscPersGrossMonth, 0.0);
         yEmpPersGrossMonth = originalPerson.getYplgrs_dv();
         yEmpPersGrossMonthL1 = originalPerson.yEmpPersGrossMonthL1;
@@ -1811,6 +1816,7 @@ public class Person implements EventListener, IDoubleSource, IIntSource, Weight,
         eduHighestC4L1 = eduHighestC4; //Update lag(1) of education level
         eduDedL1 = eduSpellFlag; //Update lag(1) of education level
         yNonBenPersGrossMonthL1 = getYpnbihs_dv(); //Update lag(1) of gross personal non-benefit income
+        updateParentsLaggedVariables();
         labHrsWorkEnumWeekL1 = getLabourSupplyWeekly(); // Lag(1) of labour supply
         yBenReceivedFlagL1 = yBenReceivedFlag; // Lag(1) of flag indicating if individual receives benefits
         labWageHrlyL1 = labWageHrly; // Lag(1) of potential hourly earnings
@@ -2412,6 +2418,15 @@ public class Person implements EventListener, IDoubleSource, IIntSource, Weight,
         Ydses_c5_Q5_L1,								//HH Income Lag(1) 5th Quantile
         Ydses_L1,
         Ydses_c5_L1,
+        Parents_ypnb_Q2_L1,							//Lag(1) co-resident parents' non-benefit income, 2nd quintile
+        Parents_ypnb_Q3_L1,
+        Parents_ypnb_Q4_L1,
+        Parents_ypnb_Q5_L1,
+        Parents_known_L1,							//Lag(1) a mother or father lived in the household
+        Parents_known_Ydses_Q2_L1,					//Parents_known_L1 x Ydses_c5_Q2_L1
+        Parents_known_Ydses_Q3_L1,
+        Parents_known_Ydses_Q4_L1,
+        Parents_known_Ydses_Q5_L1,
         Year_transformed,							//Year - 2000
         Year_transformed_R1a,
         Year_transformed_R1b,
@@ -3297,6 +3312,34 @@ public class Person implements EventListener, IDoubleSource, IIntSource, Weight,
                     return (double) getYdses_c5_lag1().getValue();
                 } else return 0.;
             }
+            // No co-resident parent (Stata: missing, dropped from E1a) scores as Q1, i.e. all dummies zero
+            case Parents_ypnb_Q2_L1 -> {
+                return (Ydses_c5.Q2.equals(parentsYpnbQuintileL1)) ? 1.0 : 0.0;
+            }
+            case Parents_ypnb_Q3_L1 -> {
+                return (Ydses_c5.Q3.equals(parentsYpnbQuintileL1)) ? 1.0 : 0.0;
+            }
+            case Parents_ypnb_Q4_L1 -> {
+                return (Ydses_c5.Q4.equals(parentsYpnbQuintileL1)) ? 1.0 : 0.0;
+            }
+            case Parents_ypnb_Q5_L1 -> {
+                return (Ydses_c5.Q5.equals(parentsYpnbQuintileL1)) ? 1.0 : 0.0;
+            }
+            case Parents_known_L1 -> {
+                return parentsKnownL1 ? 1.0 : 0.0;
+            }
+            case Parents_known_Ydses_Q2_L1 -> {
+                return (parentsKnownL1 && Ydses_c5.Q2.equals(getYdses_c5_lag1())) ? 1.0 : 0.0;
+            }
+            case Parents_known_Ydses_Q3_L1 -> {
+                return (parentsKnownL1 && Ydses_c5.Q3.equals(getYdses_c5_lag1())) ? 1.0 : 0.0;
+            }
+            case Parents_known_Ydses_Q4_L1 -> {
+                return (parentsKnownL1 && Ydses_c5.Q4.equals(getYdses_c5_lag1())) ? 1.0 : 0.0;
+            }
+            case Parents_known_Ydses_Q5_L1 -> {
+                return (parentsKnownL1 && Ydses_c5.Q5.equals(getYdses_c5_lag1())) ? 1.0 : 0.0;
+            }
             case Ypnbihs_dv_L1 -> {
                 if (yNonBenPersGrossMonthL1 != null) {
                     return yNonBenPersGrossMonthL1;
@@ -3778,6 +3821,65 @@ public class Person implements EventListener, IDoubleSource, IIntSource, Weight,
 
     public void setLes_c7_covid_lag1(Les_c7_covid labC7CovidL1) {
          this.labC7CovidL1 = labC7CovidL1;
+    }
+
+    /**
+     * Mothers and fathers living in this person's household, searched among household members only.
+     * Simulation ids (idMother/idFather) cover minors, people born in the simulation and people who turned
+     * 18 in it. Adults from the initial population have no idMother/idFather after cloning, so for them the
+     * survey ids (idMother/FatherImmutable) are matched against members' idOriginalPerson. Restricting the
+     * search to the household keeps the clones of an expanded household apart.
+     */
+    private List<Person> getCoresidentParents() {
+
+        List<Person> parents = new ArrayList<>(2);
+        if (benefitUnit == null || benefitUnit.getHousehold() == null)
+            return parents;
+        boolean useSurveyIds = !Boolean.TRUE.equals(demBornInSimFlag) && idPersOriginal != null &&
+                (idMotherImmutable != null || idFatherImmutable != null);
+        for (BenefitUnit unit : benefitUnit.getHousehold().getBenefitUnits()) {
+            for (Person member : unit.getMembers()) {
+                if (member == this)
+                    continue;
+                Long memberId = member.getId();
+                Long memberIdOriginal = member.getIdOriginalPerson();
+                boolean isParent = (idMother != null && idMother.equals(memberId)) ||
+                        (idFather != null && idFather.equals(memberId)) ||
+                        (useSurveyIds && memberIdOriginal != null && !Boolean.TRUE.equals(member.demBornInSimFlag) &&
+                                (memberIdOriginal.equals(idMotherImmutable) || memberIdOriginal.equals(idFatherImmutable)));
+                if (isParent)
+                    parents.add(member);
+            }
+        }
+        return parents;
+    }
+
+    /**
+     * Parental regressors of the education processes, as in input/ES/do_files_reg_estim/01_reg_education_ES.do:
+     * Parents_known is a mother or father in the same household; parents' income is asinh of the sum, in levels,
+     * of their ypnbihs_dv (Stata: asinh(sinh(m)+sinh(f)) with rowtotal, so a missing income is skipped).
+     * Called from updateLaggedVariables, before this year's incomes are computed, so it holds t-1 values.
+     */
+    private void updateParentsLaggedVariables() {
+
+        List<Person> parents = getCoresidentParents();
+        parentsKnownL1 = !parents.isEmpty();
+        Double level = null;
+        for (Person parent : parents) {
+            Double ypnb = parent.getYpnbihs_dv();
+            if (ypnb != null)
+                level = (level == null ? 0. : level) + Math.sinh(ypnb);
+        }
+        parentsYpnbL1 = (level == null) ? null : Parameters.asinh(level);
+        parentsYpnbQuintileL1 = null; // assigned by SimPathsModel.updateParentsIncomeQuintiles
+    }
+
+    public Double getParentsYpnbL1() {
+        return parentsYpnbL1;
+    }
+
+    public void setParentsYpnbQuintileL1(Ydses_c5 quintile) {
+        parentsYpnbQuintileL1 = quintile;
     }
 
     public HouseholdStatus getHouseholdStatus() {
