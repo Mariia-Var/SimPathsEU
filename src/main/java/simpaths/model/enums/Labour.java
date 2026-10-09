@@ -32,10 +32,13 @@ public enum Labour implements IntegerValuedEnum {
     CATEGORY_EL_2(42, 40, 40,  40, 40),  // [40]
     CATEGORY_EL_3(43, 41, Parameters.MAX_LABOUR_HOURS_IN_WEEK,  41, Parameters.MAX_LABOUR_HOURS_IN_WEEK),  // [41+]
 
-    //ES
-    CATEGORY_ES_1(51, 6, 35, 6, 35),  //sub categoryId 20 to 1
-    CATEGORY_ES_2(52, 36, 40, 36, 40),
-    CATEGORY_ES_3(53, 41, Parameters.MAX_LABOUR_HOURS_IN_WEEK, 41, Parameters.MAX_LABOUR_HOURS_IN_WEEK);
+    //ES; bands and representative hours as in the labour-supply estimation (ES master-elast.do)
+    //int categoryId, int femaleMin, int femaleMax, int maleMin, int maleMax, int femaleHours, int maleHours
+    CATEGORY_ES_1(51,  6, 25,  6, 34, 20, 20),   // [6-25] vs [6-34]
+    CATEGORY_ES_2(52, 26, 34, 35, 39, 30, 37),   // [26-34] vs [35-39]
+    CATEGORY_ES_3(53, 35, 39, 40, 40, 37, 40),   // [35-39] vs [40]
+    CATEGORY_ES_4(54, 40, 40, 41, 55, 40, 50),   // [40] vs [41-55]
+    CATEGORY_ES_5(55, 41, Parameters.MAX_LABOUR_HOURS_IN_WEEK, 56, Parameters.MAX_LABOUR_HOURS_IN_WEEK, 50, 60);   // [41+] vs [56+]
 
 
 
@@ -43,13 +46,20 @@ public enum Labour implements IntegerValuedEnum {
     private final int categoryId;
     private final int femaleMin, femaleMax;
     private final int maleMin, maleMax;
+    private final int femaleHours, maleHours;     // hours returned in discrete mode
 
     Labour(int categoryId, int femaleMin, int femaleMax, int maleMin, int maleMax) {
+        this(categoryId, femaleMin, femaleMax, maleMin, maleMax, (femaleMin + femaleMax) / 2, (maleMin + maleMax) / 2);
+    }
+
+    Labour(int categoryId, int femaleMin, int femaleMax, int maleMin, int maleMax, int femaleHours, int maleHours) {
         this.categoryId = categoryId;
         this.femaleMin = femaleMin;
         this.femaleMax = femaleMax;
         this.maleMin = maleMin;
         this.maleMax = maleMax;
+        this.femaleHours = femaleHours;
+        this.maleHours = maleHours;
     }
 
     @Override
@@ -88,9 +98,11 @@ public enum Labour implements IntegerValuedEnum {
         }
         else if (Objects.equals(country, "ES")) {
             if (hours < 6) return ZERO;          // 1-5 hours: outside the estimated choice set
-            else if (hours <= 35) return CATEGORY_ES_1;
-            else if (hours <= 40) return CATEGORY_ES_2;
-            else return CATEGORY_ES_3;
+            else if (hours < 26) return CATEGORY_ES_1;
+            else if (hours < 35) return CATEGORY_ES_2;
+            else if (hours < 40) return CATEGORY_ES_3;
+            else if (hours < 41) return CATEGORY_ES_4;
+            else return CATEGORY_ES_5;
         }
         else if (Objects.equals(country, "HU")) {
             if (hours <= 39) return CATEGORY_HU_1;
@@ -123,9 +135,11 @@ public enum Labour implements IntegerValuedEnum {
         }
         else if (Objects.equals(country, "ES")) {
             if (hours < 6) return ZERO;          // 1-5 hours: outside the estimated choice set
-            else if (hours <= 35) return CATEGORY_ES_1;
-            else if (hours <= 40) return CATEGORY_ES_2;
-            else return CATEGORY_ES_3;
+            else if (hours < 35) return CATEGORY_ES_1;
+            else if (hours < 40) return CATEGORY_ES_2;
+            else if (hours < 41) return CATEGORY_ES_3;
+            else if (hours < 56) return CATEGORY_ES_4;
+            else return CATEGORY_ES_5;
         }
         else if (Objects.equals(country, "HU")) {
             if (hours <= 39) return CATEGORY_HU_1;
@@ -149,7 +163,7 @@ public enum Labour implements IntegerValuedEnum {
             case "EL" -> new Labour[]{ZERO, CATEGORY_EL_1, CATEGORY_EL_2, CATEGORY_EL_3};
             case "IT" -> new Labour[]{ZERO, CATEGORY_IT_1, CATEGORY_IT_2, CATEGORY_IT_3, CATEGORY_IT_4};
             case "PL" -> new Labour[]{ZERO, CATEGORY_PL_1, CATEGORY_PL_2, CATEGORY_PL_3};
-            case "ES" -> new Labour[]{ZERO, CATEGORY_ES_1, CATEGORY_ES_2, CATEGORY_ES_3};
+            case "ES" -> new Labour[]{ZERO, CATEGORY_ES_1, CATEGORY_ES_2, CATEGORY_ES_3, CATEGORY_ES_4, CATEGORY_ES_5};
             case "HU" -> new Labour[]{ZERO, CATEGORY_HU_1, CATEGORY_HU_2, CATEGORY_HU_3};
             default -> values();
         };
@@ -168,8 +182,24 @@ public enum Labour implements IntegerValuedEnum {
             double draw = person.getLabourSupplySingleDraw();
             return (int) Math.round(draw * (max - min) + min);
         } else {
-            // Return midpoint for discrete mode
-            return (min + max) / 2;
+            // Representative hours for discrete mode (the band midpoint unless set explicitly)
+            return (gender == Gender.Female) ? femaleHours : maleHours;
         }
+    }
+
+    /**
+     * Position of an ES band in the labour-supply choice set: 0 for ZERO, 1 to 5 for CATEGORY_ES_1 to CATEGORY_ES_5,
+     * -1 otherwise. Used to decode the alternative suffix of ES labour-supply regressors.
+     */
+    public int getEsIndex() {
+        return switch (this) {
+            case ZERO -> 0;
+            case CATEGORY_ES_1 -> 1;
+            case CATEGORY_ES_2 -> 2;
+            case CATEGORY_ES_3 -> 3;
+            case CATEGORY_ES_4 -> 4;
+            case CATEGORY_ES_5 -> 5;
+            default -> -1;
+        };
     }
 }

@@ -5,6 +5,7 @@ package simpaths.data;
 
 import microsim.data.MultiKeyCoefficientMap;
 import microsim.data.excel.ExcelAssistant;
+//import microsim.engine.SimulationEngine;    // used by bootstrapScaleRobust (switched off)
 import microsim.statistics.regression.*;
 import microsim.statistics.regression.RegressionType;
 import org.apache.commons.collections4.keyvalue.MultiKey;
@@ -13,6 +14,8 @@ import org.apache.commons.collections4.map.MultiKeyMap;
 import org.apache.commons.lang3.tuple.Triple;
 import org.apache.commons.math3.distribution.MultivariateNormalDistribution;
 import org.apache.commons.math3.distribution.NormalDistribution;
+//import org.apache.commons.math3.linear.SingularMatrixException;    // used by bootstrapScaleRobust (switched off)
+//import org.apache.commons.math3.random.RandomGenerator;    // used by bootstrapScaleRobust (switched off)
 import org.apache.commons.math3.util.Pair;
 import org.apache.commons.collections4.MapIterator;
 import simpaths.data.startingpop.DataParser;
@@ -316,6 +319,11 @@ public class Parameters {
     public static boolean flagUnemployment = false;
 
     public static int BASE_PRICE_YEAR = 2015;            // Base price year of model parameters
+
+    // Income in the labour-supply utility (reg_labourSupplyUtility.xlsx) must be in the prices the estimates used.
+    // The model holds income in BASE_PRICE_YEAR prices, so it is multiplied by this factor, set in loadParameters
+    // from labourSupplyEstimationPriceYear(). It would be 1.0 for estimates in BASE_PRICE_YEAR prices.
+    private static double labourSupplyIncomePriceFactor = 1.0;
 
     public static double PROB_NEWBORN_IS_MALE = 0.5;            // Must be strictly greater than 0.0 and less than 1.0
 
@@ -934,6 +942,51 @@ public class Parameters {
     }
 
 
+    // bootstrapScaleRobust is switched off: the ES Couples sheet now has leisure in tens of hours, which JAS-mine's
+    // own bootstrap accepts. Uncomment it (and its three imports) and route the labour-supply sheets through it
+    // again if a covariance matrix is rejected as singular (see documentation/bootstrap_scale_robust.md).
+//    /**
+//     * Bootstraps regression coefficients as RegressionUtils.bootstrap() does, but copes with a badly scaled
+//     * covariance matrix. bootstrap() rejects a covariance as singular once the ratio of its smallest to largest
+//     * eigenvalue falls below 1e-12, which a positive-definite matrix reaches when regressors differ greatly in
+//     * scale (ES couples: income squared / 10000 next to education dummies). The draw is then taken on the
+//     * standardised coefficients, whose covariance is the correlation matrix, and scaled back: beta + D z with
+//     * z ~ N(0, D^-1 V D^-1) and D = diag(sd) has the same N(beta, V) distribution. The rejection happens before
+//     * any random number is drawn, so a well-scaled matrix gives exactly the draw RegressionUtils.bootstrap() gives.
+//     */
+//    private static MultiKeyCoefficientMap bootstrapScaleRobust(MultiKeyCoefficientMap map) {
+//        try {
+//            return RegressionUtils.bootstrap(map);
+//        } catch (SingularMatrixException e) {
+//            String coefficient = RegressionColumnNames.COEFFICIENT.toString();
+//            List<String> regressors = new ArrayList<>();
+//            for (String name : map.getValuesNames()) {
+//                if (!coefficient.equals(name)) regressors.add(name);
+//            }
+//            int n = regressors.size();
+//            double[] beta = new double[n];
+//            double[] sd = new double[n];
+//            for (int i = 0; i < n; i++) {
+//                beta[i] = ((Number) map.getValue(regressors.get(i), coefficient)).doubleValue();
+//                sd[i] = Math.sqrt(((Number) map.getValue(regressors.get(i), regressors.get(i))).doubleValue());
+//            }
+//            double[][] correlation = new double[n][n];
+//            for (int i = 0; i < n; i++) {
+//                for (int j = 0; j < n; j++) {
+//                    if (i == j) correlation[i][j] = 1.0;
+//                    else if (sd[i] > 0.0 && sd[j] > 0.0)
+//                        correlation[i][j] = ((Number) map.getValue(regressors.get(i), regressors.get(j))).doubleValue() / (sd[i] * sd[j]);
+//                }
+//            }
+//            double[] z = new MultivariateNormalDistribution((RandomGenerator) SimulationEngine.getRnd(), new double[n], correlation).sample();
+//            MultiKeyCoefficientMap bootstrapped = new MultiKeyCoefficientMap(map.getKeysNames(), new String[]{coefficient});
+//            for (int i = 0; i < n; i++) {
+//                bootstrapped.putValue(regressors.get(i), beta[i] + sd[i] * z[i]);
+//            }
+//            return bootstrapped;
+//        }
+//    }
+
     public static void defineCountryString(Country country) {COUNTRY_STRING  =country.toString(); }
 
     /**
@@ -981,6 +1034,7 @@ public class Parameters {
         String countryString = country.toString();
         COUNTRY_STRING  = country.toString();
         loadTimeSeriesFactorMaps(country);
+        setLabourSupplyIncomePriceFactor(country);
         instantiateAlignmentMaps();
 
         // scenario parameters
@@ -2251,6 +2305,29 @@ public class Parameters {
 
     public static double getTimeSeriesValue(int year, TimeSeriesVariable timeSeriesVariable) {
         return getTimeSeriesValue(year, null, null, timeSeriesVariable);
+    }
+
+    // Price year of the income variable in the labour-supply estimates (reg_labourSupplyUtility.xlsx):
+    // EU-SILC 2024 incomes (2023 reference year) run through the 2023 EUROMOD systems, not deflated
+    // (e.g. input/ES/do-files, ES master-elast.do). Overwritten by the key of the same name in
+    // input/<COUNTRY>/parameters.xlsx, so it can differ by country; not final, so that the loader can set it.
+    private static int LABOUR_SUPPLY_ESTIMATION_PRICE_YEAR = 2023;
+
+    /** Price year of the income variable in a country's labour-supply estimates (set in parameters.xlsx). */
+    private static int labourSupplyEstimationPriceYear(Country country) {
+        return LABOUR_SUPPLY_ESTIMATION_PRICE_YEAR;
+    }
+
+    /** Sets the factor that converts BASE_PRICE_YEAR income to the price year of the labour-supply estimates. */
+    private static void setLabourSupplyIncomePriceFactor(Country country) {
+        int priceYear = labourSupplyEstimationPriceYear(country);
+        labourSupplyIncomePriceFactor = (priceYear == BASE_PRICE_YEAR) ? 1.0 :
+                getTimeSeriesValue(priceYear, TimeSeriesVariable.Inflation) / getTimeSeriesValue(BASE_PRICE_YEAR, TimeSeriesVariable.Inflation);
+    }
+
+    /** Multiplies BASE_PRICE_YEAR income to express it in the prices of the labour-supply estimates. */
+    public static double getLabourSupplyIncomePriceFactor() {
+        return labourSupplyIncomePriceFactor;
     }
 
     /**
