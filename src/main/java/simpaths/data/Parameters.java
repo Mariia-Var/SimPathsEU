@@ -946,50 +946,6 @@ public class Parameters {
     }
 
 
-    // bootstrapScaleRobust is switched off: the ES Couples sheet now has leisure in tens of hours, which JAS-mine's
-    // own bootstrap accepts. Uncomment it (and its three imports) and route the labour-supply sheets through it
-    // again if a covariance matrix is rejected as singular (see documentation/bootstrap_scale_robust.md).
-//    /**
-//     * Bootstraps regression coefficients as RegressionUtils.bootstrap() does, but copes with a badly scaled
-//     * covariance matrix. bootstrap() rejects a covariance as singular once the ratio of its smallest to largest
-//     * eigenvalue falls below 1e-12, which a positive-definite matrix reaches when regressors differ greatly in
-//     * scale (ES couples: income squared / 10000 next to education dummies). The draw is then taken on the
-//     * standardised coefficients, whose covariance is the correlation matrix, and scaled back: beta + D z with
-//     * z ~ N(0, D^-1 V D^-1) and D = diag(sd) has the same N(beta, V) distribution. The rejection happens before
-//     * any random number is drawn, so a well-scaled matrix gives exactly the draw RegressionUtils.bootstrap() gives.
-//     */
-//    private static MultiKeyCoefficientMap bootstrapScaleRobust(MultiKeyCoefficientMap map) {
-//        try {
-//            return RegressionUtils.bootstrap(map);
-//        } catch (SingularMatrixException e) {
-//            String coefficient = RegressionColumnNames.COEFFICIENT.toString();
-//            List<String> regressors = new ArrayList<>();
-//            for (String name : map.getValuesNames()) {
-//                if (!coefficient.equals(name)) regressors.add(name);
-//            }
-//            int n = regressors.size();
-//            double[] beta = new double[n];
-//            double[] sd = new double[n];
-//            for (int i = 0; i < n; i++) {
-//                beta[i] = ((Number) map.getValue(regressors.get(i), coefficient)).doubleValue();
-//                sd[i] = Math.sqrt(((Number) map.getValue(regressors.get(i), regressors.get(i))).doubleValue());
-//            }
-//            double[][] correlation = new double[n][n];
-//            for (int i = 0; i < n; i++) {
-//                for (int j = 0; j < n; j++) {
-//                    if (i == j) correlation[i][j] = 1.0;
-//                    else if (sd[i] > 0.0 && sd[j] > 0.0)
-//                        correlation[i][j] = ((Number) map.getValue(regressors.get(i), regressors.get(j))).doubleValue() / (sd[i] * sd[j]);
-//                }
-//            }
-//            double[] z = new MultivariateNormalDistribution((RandomGenerator) SimulationEngine.getRnd(), new double[n], correlation).sample();
-//            MultiKeyCoefficientMap bootstrapped = new MultiKeyCoefficientMap(map.getKeysNames(), new String[]{coefficient});
-//            for (int i = 0; i < n; i++) {
-//                bootstrapped.putValue(regressors.get(i), beta[i] + sd[i] * z[i]);
-//            }
-//            return bootstrapped;
-//        }
-//    }
 
     public static void defineCountryString(Country country) {COUNTRY_STRING  =country.toString(); }
 

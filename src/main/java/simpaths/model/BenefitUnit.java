@@ -2083,19 +2083,7 @@ public class BenefitUnit implements EventListener, IDoubleSource, Weight, Compar
         FemaleLeisure_dnc02,
         MaleLeisure_ChildAge2,      //Male leisure interacted with dummy for presence of children aged 0-2 (ES)
         FemaleLeisure_ChildAge2,    //Female leisure interacted with dummy for presence of children aged 0-2 (ES)
-        // Leisure in tens of hours (ES couples): same terms as above with leisure divided by 10
-        MaleLeisureDiv10,
-        FemaleLeisureDiv10,
-        MaleLeisureSqDiv100,
-        FemaleLeisureSqDiv100,
-        MaleLeisure_FemaleLeisureDiv100,
-        MaleLeisureDiv10_MaleAgeDiv100,
-        MaleLeisureDiv10_MaleAgeSqDiv10000,
-        FemaleLeisureDiv10_FemaleAgeDiv100,
-        FemaleLeisureDiv10_FemaleAgeSqDiv10000,
-        MaleLeisureDiv10_ChildAge2,
-        FemaleLeisureDiv10_ChildAge2,
-        // ES labour supply (input/ES/do-files). Suffix = alternative, coded 10 x male band + female band (bands 0-5)
+        // ES labour supply (input/ES/do-files_LS_ES_NEW). Suffix = alternative, coded 10 x male band + female band (bands 0-5)
         FullFixedCost_Male,         //1 if male works 40+ hours
         FullFixedCost_Female,       //1 if female works 40+ hours
         PartFixedCost_Male,         //1 if male works 1-39 hours
@@ -2103,41 +2091,45 @@ public class BenefitUnit implements EventListener, IDoubleSource, Weight, Compar
         Liwwh_4, Liwwh_5, Liwwh_40, Liwwh_50,
         HealthSelfRatedGood_1, HealthSelfRatedGood_2, HealthSelfRatedGood_3, HealthSelfRatedGood_4, HealthSelfRatedGood_5, HealthSelfRatedGood_10, HealthSelfRatedGood_20, HealthSelfRatedGood_30, HealthSelfRatedGood_40, HealthSelfRatedGood_50,
         HealthSelfRatedVeryGoodExcel_1, HealthSelfRatedVeryGoodExcel_2, HealthSelfRatedVeryGoodExcel_3, HealthSelfRatedVeryGoodExcel_4, HealthSelfRatedVeryGoodExcel_5, HealthSelfRatedVeryGoodExcel_10, HealthSelfRatedVeryGoodExcel_20, HealthSelfRatedVeryGoodExcel_30, HealthSelfRatedVeryGoodExcel_40, HealthSelfRatedVeryGoodExcel_50,
-        eduDehC4Medium_Male_1, eduDehC4High_Male_1, eduDehC4Medium_Female_1, eduDehC4High_Female_1,
-        eduDehC4Medium_Male_2, eduDehC4High_Male_2, eduDehC4Medium_Female_2, eduDehC4High_Female_2,
-        eduDehC4Medium_Male_3, eduDehC4High_Male_3, eduDehC4Medium_Female_3, eduDehC4High_Female_3,
-        eduDehC4Medium_Male_4, eduDehC4High_Male_4, eduDehC4Medium_Female_4, eduDehC4High_Female_4,
-        eduDehC4Medium_Male_5, eduDehC4High_Male_5, eduDehC4Medium_Female_5, eduDehC4High_Female_5,
-        eduDehC4Medium_Male_10, eduDehC4High_Male_10, eduDehC4Medium_Female_10, eduDehC4High_Female_10,
-        eduDehC4Medium_Male_11, eduDehC4High_Male_11, eduDehC4Medium_Female_11, eduDehC4High_Female_11,
-        eduDehC4Medium_Male_12, eduDehC4High_Male_12, eduDehC4Medium_Female_12, eduDehC4High_Female_12,
-        eduDehC4Medium_Male_13, eduDehC4High_Male_13, eduDehC4Medium_Female_13, eduDehC4High_Female_13,
-        eduDehC4Medium_Male_14, eduDehC4High_Male_14, eduDehC4Medium_Female_14, eduDehC4High_Female_14,
-        eduDehC4Medium_Male_15, eduDehC4High_Male_15, eduDehC4Medium_Female_15, eduDehC4High_Female_15,
-        eduDehC4Medium_Male_20, eduDehC4High_Male_20, eduDehC4Medium_Female_20, eduDehC4High_Female_20,
-        eduDehC4Medium_Male_21, eduDehC4High_Male_21, eduDehC4Medium_Female_21, eduDehC4High_Female_21,
-        eduDehC4Medium_Male_22, eduDehC4High_Male_22, eduDehC4Medium_Female_22, eduDehC4High_Female_22,
-        eduDehC4Medium_Male_23, eduDehC4High_Male_23, eduDehC4Medium_Female_23, eduDehC4High_Female_23,
-        eduDehC4Medium_Male_24, eduDehC4High_Male_24, eduDehC4Medium_Female_24, eduDehC4High_Female_24,
-        eduDehC4Medium_Male_25, eduDehC4High_Male_25, eduDehC4Medium_Female_25, eduDehC4High_Female_25,
-        eduDehC4Medium_Male_30, eduDehC4High_Male_30, eduDehC4Medium_Female_30, eduDehC4High_Female_30,
-        eduDehC4Medium_Male_31, eduDehC4High_Male_31, eduDehC4Medium_Female_31, eduDehC4High_Female_31,
-        eduDehC4Medium_Male_32, eduDehC4High_Male_32, eduDehC4Medium_Female_32, eduDehC4High_Female_32,
-        eduDehC4Medium_Male_33, eduDehC4High_Male_33, eduDehC4Medium_Female_33, eduDehC4High_Female_33,
-        eduDehC4Medium_Male_34, eduDehC4High_Male_34, eduDehC4Medium_Female_34, eduDehC4High_Female_34,
-        eduDehC4Medium_Male_35, eduDehC4High_Male_35, eduDehC4Medium_Female_35, eduDehC4High_Female_35,
-        eduDehC4Medium_Male_40, eduDehC4High_Male_40, eduDehC4Medium_Female_40, eduDehC4High_Female_40,
-        eduDehC4Medium_Male_41, eduDehC4High_Male_41, eduDehC4Medium_Female_41, eduDehC4High_Female_41,
-        eduDehC4Medium_Male_42, eduDehC4High_Male_42, eduDehC4Medium_Female_42, eduDehC4High_Female_42,
-        eduDehC4Medium_Male_43, eduDehC4High_Male_43, eduDehC4Medium_Female_43, eduDehC4High_Female_43,
-        eduDehC4Medium_Male_44, eduDehC4High_Male_44, eduDehC4Medium_Female_44, eduDehC4High_Female_44,
-        eduDehC4Medium_Male_45, eduDehC4High_Male_45, eduDehC4Medium_Female_45, eduDehC4High_Female_45,
-        eduDehC4Medium_Male_50, eduDehC4High_Male_50, eduDehC4Medium_Female_50, eduDehC4High_Female_50,
-        eduDehC4Medium_Male_51, eduDehC4High_Male_51, eduDehC4Medium_Female_51, eduDehC4High_Female_51,
-        eduDehC4Medium_Male_52, eduDehC4High_Male_52, eduDehC4Medium_Female_52, eduDehC4High_Female_52,
-        eduDehC4Medium_Male_53, eduDehC4High_Male_53, eduDehC4Medium_Female_53, eduDehC4High_Female_53,
-        eduDehC4Medium_Male_54, eduDehC4High_Male_54, eduDehC4Medium_Female_54, eduDehC4High_Female_54,
-        eduDehC4Medium_Male_55, eduDehC4High_Male_55, eduDehC4Medium_Female_55, eduDehC4High_Female_55,
+        // education of an adult child (SingleAC_* sheets)
+        eduDehC4Medium_1, eduDehC4Medium_2, eduDehC4Medium_3, eduDehC4Medium_4, eduDehC4Medium_5, eduDehC4Medium_10, eduDehC4Medium_20, eduDehC4Medium_30, eduDehC4Medium_40, eduDehC4Medium_50,
+        eduDehC4High_1, eduDehC4High_2, eduDehC4High_3, eduDehC4High_4, eduDehC4High_5, eduDehC4High_10, eduDehC4High_20, eduDehC4High_30, eduDehC4High_40, eduDehC4High_50,
+        // education of the named partner (Couples sheet)
+        eduDehC4High_Male_1, eduDehC4High_Female_1,
+        eduDehC4High_Male_2, eduDehC4High_Female_2,
+        eduDehC4High_Male_3, eduDehC4High_Female_3,
+        eduDehC4High_Male_4, eduDehC4High_Female_4,
+        eduDehC4High_Male_5, eduDehC4High_Female_5,
+        eduDehC4High_Male_10, eduDehC4High_Female_10,
+        eduDehC4High_Male_11, eduDehC4High_Female_11,
+        eduDehC4High_Male_12, eduDehC4High_Female_12,
+        eduDehC4High_Male_13, eduDehC4High_Female_13,
+        eduDehC4High_Male_14, eduDehC4High_Female_14,
+        eduDehC4High_Male_15, eduDehC4High_Female_15,
+        eduDehC4High_Male_20, eduDehC4High_Female_20,
+        eduDehC4High_Male_21, eduDehC4High_Female_21,
+        eduDehC4High_Male_22, eduDehC4High_Female_22,
+        eduDehC4High_Male_23, eduDehC4High_Female_23,
+        eduDehC4High_Male_24, eduDehC4High_Female_24,
+        eduDehC4High_Male_25, eduDehC4High_Female_25,
+        eduDehC4High_Male_30, eduDehC4High_Female_30,
+        eduDehC4High_Male_31, eduDehC4High_Female_31,
+        eduDehC4High_Male_32, eduDehC4High_Female_32,
+        eduDehC4High_Male_33, eduDehC4High_Female_33,
+        eduDehC4High_Male_34, eduDehC4High_Female_34,
+        eduDehC4High_Male_35, eduDehC4High_Female_35,
+        eduDehC4High_Male_40, eduDehC4High_Female_40,
+        eduDehC4High_Male_41, eduDehC4High_Female_41,
+        eduDehC4High_Male_42, eduDehC4High_Female_42,
+        eduDehC4High_Male_43, eduDehC4High_Female_43,
+        eduDehC4High_Male_44, eduDehC4High_Female_44,
+        eduDehC4High_Male_45, eduDehC4High_Female_45,
+        eduDehC4High_Male_50, eduDehC4High_Female_50,
+        eduDehC4High_Male_51, eduDehC4High_Female_51,
+        eduDehC4High_Male_52, eduDehC4High_Female_52,
+        eduDehC4High_Male_53, eduDehC4High_Female_53,
+        eduDehC4High_Male_54, eduDehC4High_Female_54,
+        eduDehC4High_Male_55, eduDehC4High_Female_55,
         IncomeDiv100_FemaleAgeDiv100,
         IncomeDiv100_FemaleAgeSqDiv10000,
         North_1,
@@ -2337,15 +2329,16 @@ public class BenefitUnit implements EventListener, IDoubleSource, Weight, Compar
      *   Liwwh_k                                       work history in years
      *   HealthSelfRatedGood_k                         1 if self-rated health is Good
      *   HealthSelfRatedVeryGoodExcel_k                1 if self-rated health is Very good or Excellent
-     *   eduDehC4Medium_{Male,Female}_k                1 if education is Medium
-     *   eduDehC4High_{Male,Female}_k                  1 if education is High
+     *   eduDehC4Medium_k, eduDehC4High_k              1 if education is Medium (deh 3-4), High (deh 5)    (adult children)
+     *   eduDehC4{Medium,High}_{Male,Female}_k         the same, for the named partner                     (couples)
      *
-     * Definitions follow the ES labour-supply estimation
+     * Definitions follow the ES labour-supply estimation (input/ES/do-files_LS_ES_NEW); the Couples sheet
+     * currently has the High terms only.
      */
     private record EsLabourChoiceRegressor(String variable, Gender gender, int maleBand, int femaleBand) {
 
         // regressors of singles: the partner is the one whose band is not zero
-        private static final Pattern SINGLES = Pattern.compile("(Liwwh|HealthSelfRatedGood|HealthSelfRatedVeryGoodExcel)_(\\d+)");
+        private static final Pattern SINGLES = Pattern.compile("(Liwwh|HealthSelfRatedGood|HealthSelfRatedVeryGoodExcel|eduDehC4Medium|eduDehC4High)_(\\d+)");
         // regressors of couples: the partner is named in the regressor
         private static final Pattern COUPLES = Pattern.compile("(eduDehC4Medium|eduDehC4High)_(Male|Female)_(\\d+)");
 
@@ -3793,41 +3786,6 @@ public class BenefitUnit implements EventListener, IDoubleSource, Weight, Compar
             case FemaleLeisure_dnc02, FemaleLeisure_ChildAge2 -> {
                 return (Parameters.HOURS_IN_WEEK - getFemale().getLabourSupplyHoursWeekly()) * getIndicatorChildren(0,2).ordinal();
 
-            }
-
-            // Leisure in tens of hours (ES couples)
-            case MaleLeisureDiv10 -> {
-                return (Parameters.HOURS_IN_WEEK - getMale().getLabourSupplyHoursWeekly()) * 1.e-1;
-            }
-            case FemaleLeisureDiv10 -> {
-                return (Parameters.HOURS_IN_WEEK - getFemale().getLabourSupplyHoursWeekly()) * 1.e-1;
-            }
-            case MaleLeisureSqDiv100 -> {
-                return (Parameters.HOURS_IN_WEEK - getMale().getLabourSupplyHoursWeekly()) * (Parameters.HOURS_IN_WEEK - getMale().getLabourSupplyHoursWeekly()) * 1.e-2;
-            }
-            case FemaleLeisureSqDiv100 -> {
-                return (Parameters.HOURS_IN_WEEK - getFemale().getLabourSupplyHoursWeekly()) * (Parameters.HOURS_IN_WEEK - getFemale().getLabourSupplyHoursWeekly()) * 1.e-2;
-            }
-            case MaleLeisure_FemaleLeisureDiv100 -> {
-                return (Parameters.HOURS_IN_WEEK - getMale().getLabourSupplyHoursWeekly()) * (Parameters.HOURS_IN_WEEK - getFemale().getLabourSupplyHoursWeekly()) * 1.e-2;
-            }
-            case MaleLeisureDiv10_MaleAgeDiv100 -> {
-                return (Parameters.HOURS_IN_WEEK - getMale().getLabourSupplyHoursWeekly()) * getMale().getDag() * 1.e-3;
-            }
-            case MaleLeisureDiv10_MaleAgeSqDiv10000 -> {
-                return (Parameters.HOURS_IN_WEEK - getMale().getLabourSupplyHoursWeekly()) * getMale().getDag() * getMale().getDag() * 1.e-5;
-            }
-            case FemaleLeisureDiv10_FemaleAgeDiv100 -> {
-                return (Parameters.HOURS_IN_WEEK - getFemale().getLabourSupplyHoursWeekly()) * getFemale().getDag() * 1.e-3;
-            }
-            case FemaleLeisureDiv10_FemaleAgeSqDiv10000 -> {
-                return (Parameters.HOURS_IN_WEEK - getFemale().getLabourSupplyHoursWeekly()) * getFemale().getDag() * getFemale().getDag() * 1.e-5;
-            }
-            case MaleLeisureDiv10_ChildAge2 -> {
-                return (Parameters.HOURS_IN_WEEK - getMale().getLabourSupplyHoursWeekly()) * getIndicatorChildren(0,2).ordinal() * 1.e-1;
-            }
-            case FemaleLeisureDiv10_ChildAge2 -> {
-                return (Parameters.HOURS_IN_WEEK - getFemale().getLabourSupplyHoursWeekly()) * getIndicatorChildren(0,2).ordinal() * 1.e-1;
             }
 
 
