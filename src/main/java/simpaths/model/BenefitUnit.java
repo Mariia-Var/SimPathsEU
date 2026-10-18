@@ -466,7 +466,7 @@ public class BenefitUnit implements EventListener, IDoubleSource, Weight, Compar
 
     /**
      * Marks both adults as being in the labour-supply choice evaluation. While on (and
-     * Parameters.useRepresentativeHours is true), Labour.getHours returns each bracket's
+     * Parameters.useRepresentativeHoursInUtility is true), Labour.getHours returns each bracket's
      * representative hours instead of the person's drawn hours.
      */
     private void setEvaluatingLabourChoice(boolean evaluating) {
@@ -1617,7 +1617,7 @@ public class BenefitUnit implements EventListener, IDoubleSource, Weight, Compar
             }
 
             // populate disposable income
-            if (Parameters.useRepresentativeHours && !realisedHoursEqualRepresentative(labourSupplyChoice)) {
+            if (Parameters.useRepresentativeHoursInUtility && !realisedHoursEqualRepresentative(labourSupplyChoice)) {
                 // the choice was evaluated at representative hours; impute taxes and benefits again at the realised (drawn) hours
                 TaxEvaluation evaluatedTransfers = evaluateTransfersAtRealisedHours(occupancy, male, female);
                 yDispMonth = evaluatedTransfers.getDisposableIncomePerMonth();
