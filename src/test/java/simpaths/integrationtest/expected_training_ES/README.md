@@ -1,7 +1,7 @@
 # SimPaths simulation output
 
 Country: **ES**  
-Written: 2026-09-29 13:07:34
+Written: 2026-10-18 20:37:43
 
 This folder holds the CSV output of a simulation experiment. The settings below
 are those it was executed under; they are recorded here because output folders
@@ -29,7 +29,7 @@ should not be interpreted as estimates for this country.
 | Bootstrap all regression coefficients | on |
 | Intertemporal optimisations | off |
 | Project mortality | on |
-| Alignment: population | off |
+| Alignment: population | on |
 | Alignment: fertility | off |
 | Alignment: cohabitation | off |
 | Alignment: in school | off |

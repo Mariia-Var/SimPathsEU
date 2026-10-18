@@ -206,7 +206,7 @@ public class Person implements EventListener, IDoubleSource, IIntSource, Weight,
     @Transient private Map<Labour, Integer> personContinuousHoursLabourSupplyMap = new EnumMap<>(Labour.class);
     @Transient private boolean evaluatingLabourChoice = false; // true while the benefit unit scores candidate hours brackets; see Parameters.useRepresentativeHoursInUtility
     @Transient private Double labHrsDrawYear; // this year's position within the hours bracket, used when Parameters.redrawHoursEachYear is true
-    @Transient private String silcLhwSheet; // EU-SILC hours-distribution sheet (sample type and gender) fixed when hours are set; see Parameters.USE_SILC_LHW_BIN_DISTRIBUTION_ES
+    @Transient private String silcLhwSheet; // EU-SILC hours-distribution sheet (sample type and gender) fixed at the start of each labour-supply choice pass; see Parameters.USE_SILC_LHW_BIN_DISTRIBUTION_ES
 
     // local variables interact with regression models
     @Transient private Integer i_demYear;
@@ -4247,14 +4247,22 @@ public class Person implements EventListener, IDoubleSource, IIntSource, Weight,
                 }
             }
         }
-        if (Parameters.USE_SILC_LHW_BIN_DISTRIBUTION_ES && labHrsWorkEnumWeek != null && labHrsWorkEnumWeek.getEsIndex() > 0)
-            silcLhwSheet = findSilcLhwSheet();
         labHrsWorkWeek = getLabourSupplyHoursWeekly(); // Update number of hours worked weekly
     }
 
     /**
+     * Fixes the EU-SILC hours-distribution sheet for the coming labour-supply choice pass (called from
+     * BenefitUnit.resetLabourStates), so the sample type is resolved once per pass rather than for every
+     * candidate hours bracket, which would rerun the partner's atRiskOfWork() each time.
+     */
+    public void updateSilcLhwSheet() {
+        silcLhwSheet = (Parameters.USE_SILC_LHW_BIN_DISTRIBUTION_ES && "ES".equals(Parameters.COUNTRY_STRING))
+                ? findSilcLhwSheet() : null;
+    }
+
+    /**
      * EU-SILC hours-distribution sheet used to draw realised hours (Parameters.USE_SILC_LHW_BIN_DISTRIBUTION_ES):
-     * the one fixed when hours were last set, otherwise the person's current sample type.
+     * the one fixed at the start of the last labour-supply choice pass, otherwise the person's current sample type.
      */
     public String getSilcLhwSheet() {
         return (silcLhwSheet != null) ? silcLhwSheet : findSilcLhwSheet();

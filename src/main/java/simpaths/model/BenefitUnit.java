@@ -456,11 +456,13 @@ public class BenefitUnit implements EventListener, IDoubleSource, Weight, Compar
         if(male != null) {
             male.setLabourSupplyWeekly(null);
             male.updateLabourSupplyHoursDraw();
+            male.updateSilcLhwSheet();
         }
         Person female = getFemale();
         if(female != null) {
             female.setLabourSupplyWeekly(null);
             female.updateLabourSupplyHoursDraw();
+            female.updateSilcLhwSheet();
         }
     }
 
