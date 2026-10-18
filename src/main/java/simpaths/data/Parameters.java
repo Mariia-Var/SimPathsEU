@@ -163,12 +163,13 @@ public class Parameters {
     public static String COUNTRY_STRING = "";
 
     public static int MIN_AGE_TO_HAVE_INCOME = 16; //Minimum age to have non-employment non-benefit income
-    public static int MAX_LABOUR_HOURS_IN_WEEK = 60;
+    public static int MAX_LABOUR_HOURS_IN_WEEK = 84;
     public static int HOURS_IN_WEEK = 24*7; // currently, 24 hours per day is used to calculate leisure in labour supply
     public static boolean USE_CONTINUOUS_LABOUR_SUPPLY_HOURS = true; // If true, a random number of hours of weekly labour supply within each bracket will be generated. Otherwise, each discrete choice of labour supply corresponds to a fixed number of hours of labour supply, which is the same for all persons
     public static boolean USE_MIDPOINT_HOURS = false; // Applies only to realised hours of brackets that do not spread hours (Labour.spreadsRealisedHours false): if true, they realise at the bracket midpoint (min + max) / 2 instead of their representative hours. Choice-stage (utility) evaluation always uses representative hours for these brackets; brackets that spread hours are unaffected
-    public static boolean useRepresentativeHours = true; // If true, the labour-supply utility optimisation evaluates each hours bracket at its representative hours (Labour.getRepresentativeHours) rather than at the person's drawn hours; drawn hours apply only once the bracket has been chosen
+    public static boolean useRepresentativeHoursInUtility = true; // If true, the labour-supply utility optimisation evaluates each hours bracket at its representative hours (Labour.getRepresentativeHours) rather than at the person's drawn hours; drawn hours apply only once the bracket has been chosen
     public static boolean redrawHoursEachYear = false; // If true, the position of a person's hours within their bracket is redrawn every year (at the labour-supply choice); otherwise one draw is kept for life
+    public static boolean USE_SILC_LHW_BIN_DISTRIBUTION_ES = true; // ES only: if true, realised hours in every positive ES band are drawn from the EU-SILC distribution of observed weekly hours (lhw) within that band, for the person's sample type and gender (input/ES/hours_distributions_adjusted_noAll.xlsx); the top band runs to MAX_LABOUR_HOURS_IN_WEEK. Overrides the per-band spread setting and USE_MIDPOINT_HOURS for ES. Choice-stage evaluation still uses representative hours (useRepresentativeHoursInUtility). If false, ES hours realise as set in Labour
 
     public static int AGE_TO_BECOME_RESPONSIBLE = 18;            // Age become reference person of own benefit unit
     public static int AGE_TO_BECOME_SEMI_RESPONSIBLE = 16;      //Age used in health processes H1, H2
@@ -1038,6 +1039,7 @@ public class Parameters {
         COUNTRY_STRING  = country.toString();
         loadTimeSeriesFactorMaps(country);
         setLabourSupplyIncomePriceFactor(country);
+        loadSilcLhwDistributionES(country);
         instantiateAlignmentMaps();
 
         // scenario parameters
@@ -2331,6 +2333,69 @@ public class Parameters {
     /** Multiplies BASE_PRICE_YEAR income to express it in the prices of the labour-supply estimates. */
     public static double getLabourSupplyIncomePriceFactor() {
         return labourSupplyIncomePriceFactor;
+    }
+
+    // EU-SILC weekly-hours distributions used when USE_SILC_LHW_BIN_DISTRIBUTION_ES is true: cumulative frequency
+    // indexed by weekly hours 0..84, keyed by sheet name (sample type and gender, e.g. "Couple_female")
+    private static final String SILC_LHW_DISTRIBUTION_FILE_ES = "hours_distributions_adjusted_noAll.xlsx";
+    private static final String[] SILC_LHW_SHEETS_ES = {"Single_indep_male", "Single_indep_female", "Couple_male", "Couple_female",
+            "Single_dep_male", "Single_dep_female", "Adult_child_male", "Adult_child_female"};
+    private static Map<String, double[]> silcLhwCumulativeES;
+
+    /** Loads the EU-SILC hours distributions of input/ES (ES with USE_SILC_LHW_BIN_DISTRIBUTION_ES only). */
+    private static void loadSilcLhwDistributionES(Country country) {
+        silcLhwCumulativeES = null;
+        if (country != Country.ES || !USE_SILC_LHW_BIN_DISTRIBUTION_ES) return;
+
+        silcLhwCumulativeES = new HashMap<>();
+        String file = resolveCountryFile(country, SILC_LHW_DISTRIBUTION_FILE_ES);
+        for (String sheet : SILC_LHW_SHEETS_ES) {
+            MultiKeyCoefficientMap map = ExcelAssistant.loadCoefficientMap(file, sheet, 1);
+            // read the frequencies f(h), then turn them in place into the cumulative distribution F(h) = f(0) + ... + f(h)
+            double[] cumFreq = new double[85];
+            for (Object entryObject : map.entrySet()) {
+                Map.Entry<?, ?> entry = (Map.Entry<?, ?>) entryObject;
+                int hours = (int) Math.round(Double.parseDouble(((MultiKey<?>) entry.getKey()).getKey(0).toString()));
+                if (hours >= 0 && hours < cumFreq.length)
+                    cumFreq[hours] += ((Number) entry.getValue()).doubleValue();
+            }
+            for (int h = 1; h < cumFreq.length; h++)
+                cumFreq[h] += cumFreq[h - 1];
+            silcLhwCumulativeES.put(sheet, cumFreq);
+        }
+    }
+
+    /**
+     * Draws realised weekly hours in the band [min, max] from the EU-SILC hours distribution of the given sheet, so
+     * that each hour is drawn with probability equal to its SILC share within the band (hours never observed are
+     * never drawn). u is the person's uniform draw. Returns -1 if the band has no SILC frequency.
+     */
+    public static int drawSilcLhwHoursES(String sheet, int min, int max, double u) {
+        if (silcLhwCumulativeES == null)
+            throw new IllegalStateException("EU-SILC hours distributions not loaded: USE_SILC_LHW_BIN_DISTRIBUTION_ES is set but the country is not ES");
+        double[] cumFreq = silcLhwCumulativeES.get(sheet);
+        if (cumFreq == null)
+            throw new IllegalArgumentException("No EU-SILC hours distribution for sheet " + sheet);
+
+        int bandLow = Math.max(min, 1);
+        int bandHigh = Math.min(max, cumFreq.length - 1);
+        if (bandHigh < bandLow) return -1;
+
+        double cumBelowBand = cumFreq[bandLow - 1];
+        double bandShare = cumFreq[bandHigh] - cumBelowBand;
+        if (!(bandShare > 0.0)) return -1;
+
+        // Map the uniform draw u onto the cumulative probability range of the allowed hours band.
+        // Select the first hour whose cumulative probability exceeds this target,
+        // preserving the relative EU-SILC frequencies within the band.
+
+        double cumTarget = cumBelowBand + u * bandShare;
+        for (int h = bandLow; h <= bandHigh; h++)
+            if (cumFreq[h] > cumTarget) return h;
+
+        int h = bandHigh;
+        while (h > bandLow && cumFreq[h - 1] >= cumFreq[h]) h--;
+        return h;
     }
 
     /**

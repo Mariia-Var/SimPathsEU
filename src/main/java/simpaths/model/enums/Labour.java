@@ -194,11 +194,18 @@ public enum Labour implements IntegerValuedEnum {
             throw new IllegalArgumentException("hours for " + name() + " are gender specific, so they cannot be evaluated without a person");
 
         Gender gender = person.getDgn();
-        if (Parameters.useRepresentativeHours && person.isEvaluatingLabourChoice())
+        if (Parameters.useRepresentativeHoursInUtility && person.isEvaluatingLabourChoice())
             return getRepresentativeHours(gender);
 
         int min = (gender == Gender.Female) ? femaleMin : maleMin;
         int max = (gender == Gender.Female) ? femaleMax : maleMax;
+
+        // ES: draw realised hours from the EU-SILC within-band distribution
+        if (Parameters.USE_SILC_LHW_BIN_DISTRIBUTION_ES && getEsIndex() > 0) {
+            int top = (this == CATEGORY_ES_5) ? Parameters.MAX_LABOUR_HOURS_IN_WEEK : max;
+            int hours = Parameters.drawSilcLhwHoursES(person.getSilcLhwSheet(), min, top, person.getLabourSupplyHoursDraw());
+            if (hours > 0) return hours;
+        }
 
         // brackets that do not spread hours use a single point: the representative hours while the choice is scored,
         // and for realised hours either those or (with USE_MIDPOINT_HOURS) the bracket midpoint

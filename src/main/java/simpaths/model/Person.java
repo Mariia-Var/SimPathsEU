@@ -204,8 +204,9 @@ public class Person implements EventListener, IDoubleSource, IIntSource, Weight,
     @Transient private Double labWageRegressRandomCompoponentEmp;
     @Transient private Double labWageRegressRandomCompoponentNotEmp;
     @Transient private Map<Labour, Integer> personContinuousHoursLabourSupplyMap = new EnumMap<>(Labour.class);
-    @Transient private boolean evaluatingLabourChoice = false; // true while the benefit unit scores candidate hours brackets; see Parameters.useRepresentativeHours
+    @Transient private boolean evaluatingLabourChoice = false; // true while the benefit unit scores candidate hours brackets; see Parameters.useRepresentativeHoursInUtility
     @Transient private Double labHrsDrawYear; // this year's position within the hours bracket, used when Parameters.redrawHoursEachYear is true
+    @Transient private String silcLhwSheet; // EU-SILC hours-distribution sheet (sample type and gender) fixed when hours are set; see Parameters.USE_SILC_LHW_BIN_DISTRIBUTION_ES
 
     // local variables interact with regression models
     @Transient private Integer i_demYear;
@@ -4246,7 +4247,33 @@ public class Person implements EventListener, IDoubleSource, IIntSource, Weight,
                 }
             }
         }
+        if (Parameters.USE_SILC_LHW_BIN_DISTRIBUTION_ES && labHrsWorkEnumWeek != null && labHrsWorkEnumWeek.getEsIndex() > 0)
+            silcLhwSheet = findSilcLhwSheet();
         labHrsWorkWeek = getLabourSupplyHoursWeekly(); // Update number of hours worked weekly
+    }
+
+    /**
+     * EU-SILC hours-distribution sheet used to draw realised hours (Parameters.USE_SILC_LHW_BIN_DISTRIBUTION_ES):
+     * the one fixed when hours were last set, otherwise the person's current sample type.
+     */
+    public String getSilcLhwSheet() {
+        return (silcLhwSheet != null) ? silcLhwSheet : findSilcLhwSheet();
+    }
+
+    /**
+     * Sample type and gender of the person, mirroring the choice of labour-supply estimates in BenefitUnit:
+     * Couple when both partners are flexible in labour supply, Single_dep when the partner is not,
+     * Adult_child for single adult children and Single_indep for other singles.
+     */
+    private String findSilcLhwSheet() {
+        String sample;
+        if (benefitUnit != null && Occupancy.Couple.equals(benefitUnit.getOccupancy())) {
+            Person partner = (Gender.Female.equals(demMaleFlag)) ? benefitUnit.getMale() : benefitUnit.getFemale();
+            sample = (partner != null && partner.atRiskOfWork()) ? "Couple" : "Single_dep";
+        } else {
+            sample = (getAdultChildFlag() == 1) ? "Adult_child" : "Single_indep";
+        }
+        return sample + (Gender.Female.equals(demMaleFlag) ? "_female" : "_male");
     }
 
     public double getLabourSupplyHoursYearly() {
