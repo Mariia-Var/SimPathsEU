@@ -2227,6 +2227,7 @@ public class Person implements EventListener, IDoubleSource, IIntSource, Weight,
         GrossEarningsYearly,
         GrossLabourIncomeMonthly,
         InverseMillsRatio,
+        InvMillsRatio,                  //Same as InverseMillsRatio; name used by the ES estimates
         ES1, // Spain
         ES2,
         ES3,
@@ -2267,10 +2268,13 @@ public class Person implements EventListener, IDoubleSource, IIntSource, Weight,
         Lesdf_c4_BothNotEmployed_L1,
         Lesdf_c4_EmployedSpouseNotEmployed_L1, 					//Own and partner's activity status lag(1)
         Lesdf_c4_NotEmployedSpouseEmployed_L1,
+        Lesdf_c4_BothNotEmp_L1,         //Same as the three Lesdf_c4 terms above; names used by the ES estimates
+        Lesdf_c4_EmpSpouseNotEmp_L1,
+        Lesdf_c4_NotEmpSpouseEmp_L1,
         Lessp_c3_NotEmployed_L1,
         Lessp_c3_Sick_L1,
         Lessp_c3_Student_L1,			//Partner variables
-        Liwwh,									//Work history in months
+        Liwwh,									//Work history in years
         LnAge,
         Lnonwork,
         Lstudent,
@@ -2292,6 +2296,7 @@ public class Person implements EventListener, IDoubleSource, IIntSource, Weight,
         Reached_Retirement_Age,						//Indicator whether individual is at or above retirement age
         Reached_Retirement_Age_Les_c3_NotEmployed_L1, //Interaction term for being at or above retirement age and not employed in the previous year
         Reached_Retirement_Age_Les_c2_NotEmployed_L1, //Interaction term for being at or above retirement age and student or not employed in the previous year
+        Reached_Retirement_Age_Les_L1,  //Same as Reached_Retirement_Age_Les_c2_NotEmployed_L1; name used by the ES estimates
         Reached_Retirement_Age_Sp,					//Indicator whether spouse is at or above retirement age
         Reached_Retirement_Age_Sp_L1,				//Lag(1) indicator: partner was at or above state pension age
         Elig_pen,     // Age == state retirement age
@@ -2886,7 +2891,7 @@ public class Person implements EventListener, IDoubleSource, IIntSource, Weight,
             case GrossLabourIncomeMonthly -> {
                 return getCovidModuleGrossLabourIncome_Baseline();
             }
-            case InverseMillsRatio -> {
+            case InverseMillsRatio, InvMillsRatio -> {
                 return getInverseMillsRatio();
             }
             case Ld_children_3under -> {
@@ -2984,13 +2989,13 @@ public class Person implements EventListener, IDoubleSource, IIntSource, Weight,
             case Retired -> {
                 return Les_c4.Retired.equals(labC4) ? 1. : 0.;
             }
-            case Lesdf_c4_EmployedSpouseNotEmployed_L1 -> {                    //Own and partner's activity status lag(1)
+            case Lesdf_c4_EmployedSpouseNotEmployed_L1, Lesdf_c4_EmpSpouseNotEmp_L1 -> {                    //Own and partner's activity status lag(1)
                 return (Lesdf_c4.EmployedSpouseNotEmployed.equals(labStatusPartnerAndOwnC4L1)) ? 1. : 0.;
             }
-            case Lesdf_c4_NotEmployedSpouseEmployed_L1 -> {
+            case Lesdf_c4_NotEmployedSpouseEmployed_L1, Lesdf_c4_NotEmpSpouseEmp_L1 -> {
                 return (Lesdf_c4.NotEmployedSpouseEmployed.equals(labStatusPartnerAndOwnC4L1)) ? 1. : 0.;
             }
-            case Lesdf_c4_BothNotEmployed_L1 -> {
+            case Lesdf_c4_BothNotEmployed_L1, Lesdf_c4_BothNotEmp_L1 -> {
                 if (labStatusPartnerAndOwnC4L1 != null)
                     return labStatusPartnerAndOwnC4L1.equals(Lesdf_c4.BothNotEmployed) ? 1. : 0.;
                 else
@@ -3510,7 +3515,7 @@ public class Person implements EventListener, IDoubleSource, IIntSource, Weight,
                 }
                 return ((demAge >= retirementAge) && (labC4L1.equals(Les_c4.NotEmployed) || labC4L1.equals(Les_c4.Retired))) ? 1. : 0.;
             }
-            case Reached_Retirement_Age_Les_c2_NotEmployed_L1 -> {
+            case Reached_Retirement_Age_Les_c2_NotEmployed_L1, Reached_Retirement_Age_Les_L1 -> {
                 // Stata Reached_Retirement_Age * l.Les_c3_NotEmployed, where Reached_Retirement_Age = dagpns
                 // (at or above state pension age this year) and Les_c3_NotEmployed = lesnr_c2
                 return (demAge >= getFixedRetirementAge(this, getYear()) && isNotEmployedC2Lag1()) ? 1. : 0.;
