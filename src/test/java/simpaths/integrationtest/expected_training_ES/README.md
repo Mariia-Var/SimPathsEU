@@ -1,7 +1,7 @@
 # SimPaths simulation output
 
 Country: **ES**  
-Written: 2026-10-18 20:37:43
+Written: 2026-10-20 14:08:54
 
 This folder holds the CSV output of a simulation experiment. The settings below
 are those it was executed under; they are recorded here because output folders
