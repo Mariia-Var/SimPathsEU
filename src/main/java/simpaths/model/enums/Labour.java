@@ -37,7 +37,7 @@ public enum Labour implements IntegerValuedEnum {
     //ES; bands and representative hours as in the labour-supply estimation (ES master-elast.do)
     //Only the 35-39 band (ES_3 for women, ES_2 for men) spreads realised hours uniformly; every other band realises at its representative hours
     //int categoryId, int femaleMin, int femaleMax, int maleMin, int maleMax, int femaleRep, int maleRep, boolean femaleSpread, boolean maleSpread
-    CATEGORY_ES_1(51,  6, 25,  6, 34, 20, 20, false, false),   // [6-25] vs [6-34]
+    CATEGORY_ES_1(51, Parameters.MIN_HOURS_EMPLOYED, 25, Parameters.MIN_HOURS_EMPLOYED, 34, 20, 20, false, false),   // [6-25] vs [6-34]
     CATEGORY_ES_2(52, 26, 34, 35, 39, 30, 37, false, true),    // [26-34] vs [35-39]
     CATEGORY_ES_3(53, 35, 39, 40, 40, 37, 40, true, false),    // [35-39] vs [40]
     CATEGORY_ES_4(54, 40, 40, 41, 55, 40, 50, false, false),   // [40] vs [41-55]
@@ -108,7 +108,7 @@ public enum Labour implements IntegerValuedEnum {
             else return CATEGORY_PL_3;
         }
         else if (Objects.equals(country, "ES")) {
-            if (hours < 6) return ZERO;          // 1-5 hours: outside the estimated choice set
+            if (hours < Parameters.MIN_HOURS_EMPLOYED) return ZERO;          // 1-5 hours: outside the estimated choice set
             else if (hours < 26) return CATEGORY_ES_1;
             else if (hours < 35) return CATEGORY_ES_2;
             else if (hours < 40) return CATEGORY_ES_3;
@@ -145,7 +145,7 @@ public enum Labour implements IntegerValuedEnum {
             else return CATEGORY_PL_3;
         }
         else if (Objects.equals(country, "ES")) {
-            if (hours < 6) return ZERO;          // 1-5 hours: outside the estimated choice set
+            if (hours < Parameters.MIN_HOURS_EMPLOYED) return ZERO;          // 1-5 hours: outside the estimated choice set
             else if (hours < 35) return CATEGORY_ES_1;
             else if (hours < 40) return CATEGORY_ES_2;
             else if (hours < 41) return CATEGORY_ES_3;

@@ -368,9 +368,9 @@ public class DataParser {
 	 * SQL recoding persons reported as employed on fewer than Parameters.MIN_HOURS_EMPLOYED hours a week
 	 * to not-employed on zero hours, or an empty string where the recode does not apply.
 	 *
-	 * <p>Spain's lowest positive labour-supply band, Labour.CATEGORY_ES_1, starts at six hours a week, so
-	 * Labour.convertHoursToLabour() maps anyone reported as employed on 0 to 5 hours to Labour.ZERO. Such
-	 * a person enters the simulation employed on zero hours, and stays in that state until
+	 * <p>Spain's lowest positive labour-supply band, Labour.CATEGORY_ES_1, starts at Parameters.MIN_HOURS_EMPLOYED
+	 * (six) hours a week, so Labour.convertHoursToLabour() maps anyone reported as employed on fewer hours to
+	 * Labour.ZERO. Such a person enters the simulation employed on zero hours, and stays in that state until
 	 * BenefitUnit.updateActivity() recodes them after the first labour-supply update. Dropping the
 	 * marginal employment here instead keeps activity status, hours and labour band consistent from the
 	 * first simulated year. Only the status is set here; the hours are cleared by the shared
