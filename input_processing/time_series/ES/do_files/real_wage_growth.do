@@ -4,10 +4,10 @@
 * OBJECT: 			Wage growth
 * AUTHORS:			Ashley Burdett
 * LAST UPDATE:		17/02/25
-* COUNTRY: 			Poland 
+* COUNTRY: 			Spain
 
 * NOTES: 			Use the wage information from the EU-SILC panel data set. 
-* 					Some calculations aplied to the Excel files after populated 
+* 					Some calculations applied to the Excel files after populated 
 * 
 * 					Useful break down of the codes in the dataset: 
 * https://ec.europa.eu/eurostat/databrowser/explore/all/popul?sort=category&lang=en&subtheme=labour.lc.lci&display=list

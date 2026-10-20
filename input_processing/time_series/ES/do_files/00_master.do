@@ -84,7 +84,7 @@ do "$dir_do/mortality_rate.do"
 
 ******************************* TIDY UP ****************************************
 
-erase "$dir_do/inflation.dta"
-erase "$dir_do/mortality_rate.dta"
-erase "$dir_do/population_projections.dta"
-erase "$dir_do/total_fertility_rate.dta"
+erase "$dir_data/inflation.dta"
+erase "$dir_data/mortality_rate.dta"
+erase "$dir_data/population_projections.dta"
+erase "$dir_data/total_fertility_rate.dta"
