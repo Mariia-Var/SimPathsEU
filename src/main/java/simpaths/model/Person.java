@@ -148,6 +148,7 @@ public class Person implements EventListener, IDoubleSource, IIntSource, Weight,
 
     @Transient private Labour labHrsWorkEnumWeekL1; // Lag(1) (previous year's value) of weekly labour supply
     private Integer labHrsWorkWeek;
+    private Integer labHrsWorkWeekL1;
 
 //	Potential earnings is the gross hourly wage an individual can earn while working
 //	and is estimated, for each individual, on the basis of observable characteristics as
@@ -493,6 +494,7 @@ public class Person implements EventListener, IDoubleSource, IIntSource, Weight,
 
         healthPartnerSelfRatedL1 = originalPerson.healthPartnerSelfRatedL1;
         labHrsWorkWeek = originalPerson.labHrsWorkWeek;
+        labHrsWorkWeekL1 = originalPerson.labHrsWorkWeekL1;
         labHrsWorkEnumWeek = originalPerson.getLabourSupplyWeekly();
         double[] sampleDifferentials = setMarriageTargets();
         demAgeDiffDesired = Objects.requireNonNullElseGet(originalPerson.demAgeDiffDesired, () -> sampleDifferentials[0]);
@@ -516,15 +518,24 @@ public class Person implements EventListener, IDoubleSource, IIntSource, Weight,
         yBenReceivedFlag = originalPerson.yBenReceivedFlag;
         yBenReceivedFlagL1 = originalPerson.yBenReceivedFlagL1;
 
-        if (originalPerson.labWageHrly > Parameters.MIN_HOURLY_WAGE_RATE) {
+
+        if (originalPerson.labWageHrly >= Parameters.MIN_HOURLY_WAGE_RATE) {
             labWageHrly = Math.min(Parameters.MAX_HOURLY_WAGE_RATE, Math.max(Parameters.MIN_HOURLY_WAGE_RATE, originalPerson.labWageHrly));
         } else {
-            labWageHrly = -9.0;
+            labWageHrly = 0.0;
+            labHrsWorkWeek = 0;
+            labC4 = Les_c4.NotEmployed;
         }
-        if (originalPerson.labWageHrlyL1!=null && originalPerson.labWageHrlyL1>Parameters.MIN_HOURLY_WAGE_RATE) {
+        if (originalPerson.labWageHrlyL1!=null && originalPerson.labWageHrlyL1 >= Parameters.MIN_HOURLY_WAGE_RATE) {
             labWageHrlyL1 = Math.min(Parameters.MAX_HOURLY_WAGE_RATE, Math.max(Parameters.MIN_HOURLY_WAGE_RATE, originalPerson.labWageHrlyL1));
         } else {
-            labWageHrlyL1 = labWageHrly;
+            if (originalPerson.labWageHrlyL1 == null && originalPerson.labWageHrly != null)
+                labWageHrlyL1 = labWageHrly;
+            if (labWageHrlyL1 == null || labWageHrlyL1 < Parameters.MIN_HOURLY_WAGE_RATE) {
+                labWageHrlyL1 = 0.0;
+                labHrsWorkWeekL1 = 0;
+                labC4L1 = Les_c4.NotEmployed;
+            }
         }
     }
 

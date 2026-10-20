@@ -120,6 +120,8 @@ public class SimPathsMultiRun extends MultiRun {
 		// without this call the DBSetup branch crashes with "No PSA rules for country=".
 		Parameters.defineCountryString(country);
 
+		Parameters.validateStartYear(startYear);
+
         /*comment these lines if input folder needs to be saved in output*/
         // Disable copying input folders into output
         ExperimentManager.getInstance().copyInputFolderStructure = false;

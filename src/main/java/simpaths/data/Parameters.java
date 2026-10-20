@@ -301,7 +301,7 @@ public class Parameters {
     //public static int MAX_AGE_IN_EDUCATION;// = MAX_AGE;//30;			// Max age a person can stay in education	//Cannot set here, as MAX_AGE is not known yet.  Now set to MAX_AGE in buildObjects in Model class.
     //public static int MAX_AGE_MARRIAGE;// = MAX_AGE;//75;  			// Max age a person can marry		//Cannot set here, as MAX_AGE is not known yet.  Now set to MAX_AGE in buildObjects in Model class.
     private static int MIN_START_YEAR = 2011; //Minimum allowed starting point. Should correspond to the oldest initial population.
-    private static int MAX_START_YEAR = 2020; //Maximum allowed starting point. Should correspond to the most recent initial population.
+    private static int MAX_START_YEAR = 2023; //Maximum allowed starting point. Should correspond to the most recent initial population.
     public static int startYear;
     public static int endYear;
     private static int MIN_START_YEAR_TRAINING = 2011;
@@ -1750,6 +1750,17 @@ public class Parameters {
 
     public static int getMinStartYear() {
         return (trainingFlag) ? MIN_START_YEAR_TRAINING : MIN_START_YEAR;
+    }
+
+    public static void validateStartYear(int year) {
+        int min = getMinStartYear();
+        int max = getMaxStartYear();
+        if (year < min || year > max) {
+            String mode = trainingFlag ? "training data" : "real data";
+            throw new IllegalArgumentException(
+                    "Start year " + year + " is outside the allowed range [" + min + ", " + max + "] for " + mode + ". " +
+                    "Choose a value within the supported initial-population years (or toggle the -t/--training flag if appropriate).");
+        }
     }
 
     public static String getEuromodOutputDirectory(Country country) {
