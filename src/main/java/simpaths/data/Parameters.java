@@ -169,7 +169,7 @@ public class Parameters {
     public static boolean USE_MIDPOINT_HOURS = false; // Applies only to realised hours of brackets that do not spread hours (Labour.spreadsRealisedHours false): if true, they realise at the bracket midpoint (min + max) / 2 instead of their representative hours. Choice-stage (utility) evaluation always uses representative hours for these brackets; brackets that spread hours are unaffected
     public static boolean useRepresentativeHoursInUtility = true; // If true, the labour-supply utility optimisation evaluates each hours bracket at its representative hours (Labour.getRepresentativeHours) rather than at the person's drawn hours; drawn hours apply only once the bracket has been chosen
     public static boolean redrawHoursEachYear = false; // If true, the position of a person's hours within their bracket is redrawn every year (at the labour-supply choice); otherwise one draw is kept for life
-    public static boolean USE_SILC_LHW_BIN_DISTRIBUTION_ES = true; // ES only: if true, realised hours in every positive ES band are drawn from the EU-SILC distribution of observed weekly hours (lhw) within that band, for the person's sample type and gender (input/ES/hours_distributions_adjusted_noAll.xlsx); the top band runs to MAX_LABOUR_HOURS_IN_WEEK. Overrides the per-band spread setting and USE_MIDPOINT_HOURS for ES. Choice-stage evaluation still uses representative hours (useRepresentativeHoursInUtility). If false, ES hours realise as set in Labour
+    public static boolean USE_SILC_LHW_DISTRIBUTION_ES = true; // ES only: if true, realised hours in every positive ES band are drawn from the EU-SILC distribution of observed weekly hours (lhw) within that band, for the person's sample type and gender (input/ES/silc_lhw_distribution.xlsx); the top band runs to MAX_LABOUR_HOURS_IN_WEEK. Overrides the per-band spread setting and USE_MIDPOINT_HOURS for ES. Choice-stage evaluation still uses representative hours (useRepresentativeHoursInUtility). If false, ES hours realise as set in Labour
 
     public static int AGE_TO_BECOME_RESPONSIBLE = 18;            // Age become reference person of own benefit unit
     public static int AGE_TO_BECOME_SEMI_RESPONSIBLE = 16;      //Age used in health processes H1, H2
@@ -2291,17 +2291,17 @@ public class Parameters {
         return labourSupplyIncomePriceFactor;
     }
 
-    // EU-SILC weekly-hours distributions used when USE_SILC_LHW_BIN_DISTRIBUTION_ES is true: cumulative frequency
+    // EU-SILC weekly-hours distributions used when USE_SILC_LHW_DISTRIBUTION_ES is true: cumulative frequency
     // indexed by weekly hours 0..84, keyed by sheet name (sample type and gender, e.g. "Couple_female")
-    private static final String SILC_LHW_DISTRIBUTION_FILE_ES = "hours_distributions_adjusted_noAll.xlsx";
+    private static final String SILC_LHW_DISTRIBUTION_FILE_ES = "silc_lhw_distribution.xlsx";
     private static final String[] SILC_LHW_SHEETS_ES = {"Single_indep_male", "Single_indep_female", "Couple_male", "Couple_female",
             "Single_dep_male", "Single_dep_female", "Adult_child_male", "Adult_child_female"};
     private static Map<String, double[]> silcLhwCumulativeES;
 
-    /** Loads the EU-SILC hours distributions of input/ES (ES with USE_SILC_LHW_BIN_DISTRIBUTION_ES only). */
+    /** Loads the EU-SILC hours distributions of input/ES (ES with USE_SILC_LHW_DISTRIBUTION_ES only). */
     private static void loadSilcLhwDistributionES(Country country) {
         silcLhwCumulativeES = null;
-        if (country != Country.ES || !USE_SILC_LHW_BIN_DISTRIBUTION_ES) return;
+        if (country != Country.ES || !USE_SILC_LHW_DISTRIBUTION_ES) return;
 
         silcLhwCumulativeES = new HashMap<>();
         String file = resolveCountryFile(country, SILC_LHW_DISTRIBUTION_FILE_ES);
@@ -2328,7 +2328,7 @@ public class Parameters {
      */
     public static int drawSilcLhwHoursES(String sheet, int min, int max, double u) {
         if (silcLhwCumulativeES == null)
-            throw new IllegalStateException("EU-SILC hours distributions not loaded: USE_SILC_LHW_BIN_DISTRIBUTION_ES is set but the country is not ES");
+            throw new IllegalStateException("EU-SILC hours distributions not loaded: USE_SILC_LHW_DISTRIBUTION_ES is set but the country is not ES");
         double[] cumFreq = silcLhwCumulativeES.get(sheet);
         if (cumFreq == null)
             throw new IllegalArgumentException("No EU-SILC hours distribution for sheet " + sheet);

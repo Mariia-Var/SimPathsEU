@@ -201,7 +201,7 @@ public enum Labour implements IntegerValuedEnum {
         int max = (gender == Gender.Female) ? femaleMax : maleMax;
 
         // ES: draw realised hours from the EU-SILC within-band distribution
-        if (Parameters.USE_SILC_LHW_BIN_DISTRIBUTION_ES && getEsIndex() > 0) {
+        if (Parameters.USE_SILC_LHW_DISTRIBUTION_ES && getEsIndex() > 0) {
             int top = (this == CATEGORY_ES_5) ? Parameters.MAX_LABOUR_HOURS_IN_WEEK : max;
             int hours = Parameters.drawSilcLhwHoursES(person.getSilcLhwSheet(), min, top, person.getLabourSupplyHoursDraw());
             if (hours > 0) return hours;
