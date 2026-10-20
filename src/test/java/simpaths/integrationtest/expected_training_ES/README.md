@@ -1,7 +1,7 @@
 # SimPaths simulation output
 
 Country: **ES**  
-Written: 2026-10-20 14:08:54
+Written: 2026-10-21 00:36:48
 
 This folder holds the CSV output of a simulation experiment. The settings below
 are those it was executed under; they are recorded here because output folders
@@ -31,7 +31,7 @@ should not be interpreted as estimates for this country.
 | Project mortality | on |
 | Alignment: population | on |
 | Alignment: fertility | off |
-| Alignment: cohabitation | off |
+| Alignment: cohabitation | on |
 | Alignment: in school | off |
 | Alignment: employment | off |
 | Alignment: retirement | off |
