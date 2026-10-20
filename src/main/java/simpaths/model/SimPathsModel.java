@@ -174,7 +174,7 @@ public class SimPathsModel extends AbstractSimulationManager implements EventLis
     private boolean alignPopulation = true; // routine fails to replicate results for minor variations between simulations
 
     private boolean alignFertility = false; // Align births to fertility targets.
-    private boolean alignCohabitation = false; // Align couple/cohabitation shares.
+    private boolean alignCohabitation = true; // Align couple/cohabitation shares.
     private boolean alignInSchool = false; // Align student shares within the 16-29 age group.
     private boolean alignEmployment = false; // Align employment prevalence to target employment shares.
 
