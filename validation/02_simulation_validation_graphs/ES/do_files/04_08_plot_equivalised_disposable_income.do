@@ -197,9 +197,9 @@ forval year = `min_year'/`max_year' {
 
 graph drop _all 	
 
-
+/*
 ********************************************************************************
-* 2 : Histograms by year, and by category of weekly labour supply, ben unit 
+* 2.2 : Histograms by year, and by category of weekly labour supply, ben unit 
 ********************************************************************************
 
 * Prepare validation data
@@ -379,4 +379,387 @@ forvalues year = `min_year'/`max_year' {
 }
 
 graph drop _all 
+*/
+
+
+********************************************************************************
+* 2.3 : Histograms by year, by category of weekly labour supply and gender, 
+* 		ben unit 
+********************************************************************************
+
+* Males
+* Prepare validation data
+use year demAge dwt valid_yDispBuEquivYear valid_labHrsWorkEnumWeek ///
+	demMaleFlag using "$dir_data/${country}-eusilc_validation_sample.dta", clear		
+	
+keep if inrange(demAge,18,65)	
+
+keep if demMaleFlag == 1 
+drop demMaleFlag 
+	
+* Trim outliers
+if "$trim_outliers" == "true" {
+	
+	sum valid_yDispBuEquivYear, d
+	
+	replace valid_yDispBuEquivYear = . if ///
+		valid_yDispBuEquivYear < r(p1) | valid_yDispBuEquivYear > r(p99)
+		
+}
+
+* Prepare info needed for dynamic y axis labels 
+qui sum year
+local min_year = 2011
+if "$min_sim_year" != "" local min_year = $min_sim_year
+local max_year = $max_year
+if "$max_sim_year" != "" local max_year = $max_sim_year
+
+
+forval year = `min_year'/`max_year' { 
+
+	twoway__histogram_gen valid_yDispBuEquivYear if year == `year' , ///
+		width(250) den gen(d_valid v2)
+
+	qui sum d_valid
+	gen max_d_valid_`year' = r(max) 
+	
+	drop d_valid v2
+
+	foreach ls in $ls_cat_m {
+	
+		twoway__histogram_gen valid_yDispBuEquivYear if ///
+			year == `year' & valid_labHrsWorkEnumWeek == "`ls'", width(250) ///
+			den gen(d_valid v2)
+
+		qui sum d_valid
+		gen max_d_valid_`year'_`ls' = r(max) 
+		
+		drop d_valid v2	
+	
+	}
+}
+
+save "$dir_data/temp_valid_stats.dta", replace
+
+
+* Prepare simulated data
+use run year demAge sim_yDispEquivYear sim_labHrsWorkEnumWeek demMaleFlag ///
+	using "$dir_data/simulation_sample.dta", clear
+
+keep if inrange(demAge,18,65)	
+
+keep if demMaleFlag == 1
+drop demMaleFlag
+	
+* Trim outliers
+if "$trim_outliers" == "true" {
+	
+	sum sim_yDispEquivYear, d
+	
+	replace sim_yDispEquivYear = . if ///
+		sim_yDispEquivYear < r(p1) | sim_yDispEquivYear > r(p99)
+
+}
+
+keep if run == 1
+
+append using "$dir_data/temp_valid_stats.dta"
+
+qui sum year
+local min_year = 2011
+if "$min_sim_year" != "" local min_year = $min_sim_year
+local max_year = $max_year
+if "$max_sim_year" != "" local max_year = $max_sim_year
+
+
+forval year = `min_year'/`max_year' {
+	
+    * Prepare info needed for dynamic y axis labels 
+	twoway__histogram_gen sim_yDispEquivYear if year == `year', width(250) ///
+		den gen(d_sim v1)
+
+	qui sum d_sim 
+	gen max_d_sim = r(max)
+
+	gen max_value = max_d_valid_`year' if max_d_valid_`year' > max_d_sim 
+	replace max_value = max_d_sim if max_value == . 
+
+	sum max_value 
+	local max_y = 1.25*r(max)
+	local steps = `max_y'/2
+	
+	* Plot all hours
+	twoway (hist sim_yDispEquivYear if year == `year', width(250) ///
+		color(green%30) legend(label(1 "SimPaths"))) ///
+	(hist valid_yDispBuEquivYear if year == `year', width(250) color(red%30) ///
+		legend(label(2 "SILC"))) , ///
+		subtitle("ALL hrs") ///
+		xtitle("Euro", size(vsmall)) ///
+		ytitle("", size(vsmall)) ///	
+		name(eqdisp_inc_`year'_all, replace) ///
+		xlabel(,labsize(vsmall) angle(forty_five)) ///
+		ylabel(0(`steps')`max_y', labsize(vsmall)) ///
+		legend(size(small)) ///		
+		graphregion(color(white))		
+		
+	drop d_sim v1 max_d_sim max_value	
+	
+	foreach ls in $ls_cat_m {
+	
+		* Prepare info needed for dynamic y axis labels 
+		twoway__histogram_gen sim_yDispEquivYear if year == `year' & ///
+			sim_labHrsWorkEnumWeek == "`ls'", width(250) den gen(d_sim v1)
+
+		qui sum d_sim 
+		gen max_d_sim = r(max)
+
+		gen max_value = max_d_valid_`year'_`ls' if ///
+			max_d_valid_`year'_`ls' > max_d_sim 
+		replace max_value = max_d_sim if max_value == . 
+
+		sum max_value 
+		local max_y = 1.25*r(max)
+		local steps = `max_y'/2		
+	
+		twoway (hist sim_yDispEquivYear if year == `year' &  ///
+			sim_labHrsWorkEnumWeek == "`ls'", width(250) ///
+			color(green%30) legend(label(1 "SimPaths"))) ///
+		(hist valid_yDispBuEquivYear if year == `year' & ///
+			valid_labHrsWorkEnumWeek == "`ls'", width(250) color(red%30) ///
+			legend(label(2 "SILC"))) , ///
+			subtitle("`ls' hrs")  ///
+			name(eqdisp_inc_`year'_`ls', replace) ///
+			xtitle("Euro", size(vsmall)) ///
+			ytitle("", size(vsmall)) ///
+			xlabel(,labsize(vsmall) angle(forty_five)) ///
+			ylabel(0(`steps')`max_y', labsize(vsmall)) ///
+			legend(size(small)) ///
+			graphregion(color(white)) 
+			
+		drop d_sim v1 max_d_sim max_value
+		
+	}
+}
+
+qui sum year
+local min_year = 2011
+if "$min_sim_year" != "" local min_year = $min_sim_year
+local max_year = $max_year
+if "$max_sim_year" != "" local max_year = $max_sim_year
+
+
+forvalues year = `min_year'/`max_year' {
+	
+	grc1leg eqdisp_inc_`year'_all ///
+		eqdisp_inc_`year'_ZERO ///
+		eqdisp_inc_`year'_TWENTY  ///
+		eqdisp_inc_`year'_THIRTY_SEVEN  ///
+		eqdisp_inc_`year'_FORTY ///
+		eqdisp_inc_`year'_FIFTY ///
+		eqdisp_inc_`year'_SIXTY , ///
+		title("Equivalised Disposable Income") ///
+		subtitle("`year', males") ///
+		legendfrom(eqdisp_inc_`year'_all) ///
+		rows(2) ///
+		graphregion(color(white)) ///		
+		note("Notes: Distribution of benefit unit equivalised disposable income. Individual level data plotted 18-65 year olds included in sample. Amounts in" "Euro per year, 2015 prices. Top and bottom percentiles trimmed.", ///
+		size(vsmall)) 
+		
+	graph export ///
+ "$dir_output_files/income/equivalised_disposable_income/validation_${country}_equivalised_disposable_inc_dist_`year'_males.png", ///
+		replace width(2560) height(1440) 
+
+		
+}
+
+graph drop _all 
+
+
+* Females
+* Prepare validation data
+use year demAge dwt valid_yDispBuEquivYear valid_labHrsWorkEnumWeek ///
+	demMaleFlag using "$dir_data/${country}-eusilc_validation_sample.dta", clear		
+	
+keep if inrange(demAge,18,65)	
+
+keep if demMaleFlag == 0 
+drop demMaleFlag 
+	
+* Trim outliers
+if "$trim_outliers" == "true" {
+	
+	sum valid_yDispBuEquivYear, d
+	
+	replace valid_yDispBuEquivYear = . if ///
+		valid_yDispBuEquivYear < r(p1) | valid_yDispBuEquivYear > r(p99)
+		
+}
+
+* Prepare info needed for dynamic y axis labels 
+qui sum year
+local min_year = 2011
+if "$min_sim_year" != "" local min_year = $min_sim_year
+local max_year = $max_year
+if "$max_sim_year" != "" local max_year = $max_sim_year
+
+
+forval year = `min_year'/`max_year' { 
+
+	twoway__histogram_gen valid_yDispBuEquivYear if year == `year' , ///
+		width(250) den gen(d_valid v2)
+
+	qui sum d_valid
+	gen max_d_valid_`year' = r(max) 
+	
+	drop d_valid v2
+
+	foreach ls in $ls_cat_f {
+	
+		twoway__histogram_gen valid_yDispBuEquivYear if ///
+			year == `year' & valid_labHrsWorkEnumWeek == "`ls'", width(250) ///
+			den gen(d_valid v2)
+
+		qui sum d_valid
+		gen max_d_valid_`year'_`ls' = r(max) 
+		
+		drop d_valid v2	
+	
+	}
+}
+
+save "$dir_data/temp_valid_stats.dta", replace
+
+
+* Prepare simulated data
+use run year demAge sim_yDispEquivYear sim_labHrsWorkEnumWeek demMaleFlag ///
+	using "$dir_data/simulation_sample.dta", clear
+
+keep if inrange(demAge,18,65)	
+
+keep if demMaleFlag == 0
+drop demMaleFlag
+	
+* Trim outliers
+if "$trim_outliers" == "true" {
+	
+	sum sim_yDispEquivYear, d
+	
+	replace sim_yDispEquivYear = . if ///
+		sim_yDispEquivYear < r(p1) | sim_yDispEquivYear > r(p99)
+
+}
+
+keep if run == 1
+
+append using "$dir_data/temp_valid_stats.dta"
+
+qui sum year
+local min_year = 2011
+if "$min_sim_year" != "" local min_year = $min_sim_year
+local max_year = $max_year
+if "$max_sim_year" != "" local max_year = $max_sim_year
+
+
+forval year = `min_year'/`max_year' {
+	
+    * Prepare info needed for dynamic y axis labels 
+	twoway__histogram_gen sim_yDispEquivYear if year == `year', width(250) ///
+		den gen(d_sim v1)
+
+	qui sum d_sim 
+	gen max_d_sim = r(max)
+
+	gen max_value = max_d_valid_`year' if max_d_valid_`year' > max_d_sim 
+	replace max_value = max_d_sim if max_value == . 
+
+	sum max_value 
+	local max_y = 1.25*r(max)
+	local steps = `max_y'/2
+	
+	* Plot all hours
+	twoway (hist sim_yDispEquivYear if year == `year', width(250) ///
+		color(green%30) legend(label(1 "SimPaths"))) ///
+	(hist valid_yDispBuEquivYear if year == `year', width(250) color(red%30) ///
+		legend(label(2 "SILC"))) , ///
+		subtitle("ALL hrs") ///
+		xtitle("Euro", size(vsmall)) ///
+		ytitle("", size(vsmall)) ///	
+		name(eqdisp_inc_`year'_all, replace) ///
+		xlabel(,labsize(vsmall) angle(forty_five)) ///
+		ylabel(0(`steps')`max_y', labsize(vsmall)) ///
+		legend(size(small)) ///		
+		graphregion(color(white))		
+		
+	drop d_sim v1 max_d_sim max_value	
+	
+	foreach ls in $ls_cat_f {
+	
+		* Prepare info needed for dynamic y axis labels 
+		twoway__histogram_gen sim_yDispEquivYear if year == `year' & ///
+			sim_labHrsWorkEnumWeek == "`ls'", width(250) den gen(d_sim v1)
+
+		qui sum d_sim 
+		gen max_d_sim = r(max)
+
+		gen max_value = max_d_valid_`year'_`ls' if ///
+			max_d_valid_`year'_`ls' > max_d_sim 
+		replace max_value = max_d_sim if max_value == . 
+
+		sum max_value 
+		local max_y = 1.25*r(max)
+		local steps = `max_y'/2		
+	
+		twoway (hist sim_yDispEquivYear if year == `year' &  ///
+			sim_labHrsWorkEnumWeek == "`ls'", width(250) ///
+			color(green%30) legend(label(1 "SimPaths"))) ///
+		(hist valid_yDispBuEquivYear if year == `year' & ///
+			valid_labHrsWorkEnumWeek == "`ls'", width(250) color(red%30) ///
+			legend(label(2 "SILC"))) , ///
+			subtitle("`ls' hrs")  ///
+			name(eqdisp_inc_`year'_`ls', replace) ///
+			xtitle("Euro", size(vsmall)) ///
+			ytitle("", size(vsmall)) ///
+			xlabel(,labsize(vsmall) angle(forty_five)) ///
+			ylabel(0(`steps')`max_y', labsize(vsmall)) ///
+			legend(size(small)) ///
+			graphregion(color(white)) 
+			
+		drop d_sim v1 max_d_sim max_value
+		
+	}
+}
+
+qui sum year
+local min_year = 2011
+if "$min_sim_year" != "" local min_year = $min_sim_year
+local max_year = $max_year
+if "$max_sim_year" != "" local max_year = $max_sim_year
+
+
+forvalues year = `min_year'/`max_year' {
+	
+	grc1leg eqdisp_inc_`year'_all ///
+		eqdisp_inc_`year'_ZERO ///
+		eqdisp_inc_`year'_TWENTY  ///
+		eqdisp_inc_`year'_THIRTY  ///
+		eqdisp_inc_`year'_THIRTY_SEVEN ///
+		eqdisp_inc_`year'_FORTY ///
+		eqdisp_inc_`year'_FIFTY , ///
+		title("Equivalised Disposable Income") ///
+		subtitle("`year', females") ///
+		legendfrom(eqdisp_inc_`year'_all) ///
+		rows(2) ///
+		graphregion(color(white)) ///		
+		note("Notes: Distribution of benefit unit equivalised disposable income. Individual level data plotted 18-65 year olds included in sample. Amounts in" "Euro per year, 2015 prices. Top and bottom percentiles trimmed.", ///
+		size(vsmall)) 
+		
+	graph export ///
+ "$dir_output_files/income/equivalised_disposable_income/validation_${country}_equivalised_disposable_inc_dist_`year'_females.png", ///
+		replace width(2560) height(1440) 
+
+		
+}
+
+graph drop _all 
+
 

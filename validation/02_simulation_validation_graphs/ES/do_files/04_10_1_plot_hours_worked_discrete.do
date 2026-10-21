@@ -108,7 +108,7 @@ twoway (bar prop_SILC x_SILC, barw(0.4) color(red%50)) ///
        legend(order(1 "SILC" 2 "SimPaths" 3 "95% CI")) ///
 		legend(size(small)) ///	
        graphregion(color(white)) ///
-	note("Notes: Years 2011-2023.", size(vsmall))
+	note("Notes: Years 2011-2024.", size(vsmall))
 
 graph export ///
 	"$dir_output_files/hours_worked/validation_${country}_hours_worked_cat_all.png", ///

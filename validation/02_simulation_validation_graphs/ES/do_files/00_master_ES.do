@@ -1,4 +1,3 @@
-
 /*******************************************************************************
 * PROJECT:              SimPaths EU
 * DO-FILE NAME:         00_master_ES.do
@@ -58,12 +57,16 @@
 *   3. Set dir_sim_output to the folder containing the SimPaths
 *      simulation outputs, organised by alignment scenario.
 *
-*   4. Check the sample parameters, including:
+*   4. Check the sample and simulation parameters, including:
 *      - Minimum and maximum ages (min_age, max_age).
 *      - Validation years (min_year, max_year).
 *      - Simulated years (min_sim_year, max_sim_year).
 *      - Number of simulation runs (max_n_runs).
-*      - Labour supply categories and weekly hours thresholds.
+*
+*      Check that the labour supply category globals and weekly hours
+*      thresholds match the country-specific SimPaths model. See the
+*      section below for additional changes required when adapting
+*      these routines to another country.
 *
 *   5. Update the alignments global to select the alignment scenarios
 *      to be validated. The corresponding simulation output folders
@@ -87,6 +90,38 @@
 *
 *   Subfolders organise plots by outcome, including employment,
 *   education, income, health, poverty, and alignment targets.
+* 
+
+*   -----------------------------------------------------------------------
+*    Adapting the validation routines to another country
+*   -----------------------------------------------------------------------
+*   These validation routines are configured for Spain. When adapting
+*   them to another country, the labour supply categories must be
+*   reviewed and updated to match those used in the country-specific
+*   SimPaths model.
+*
+*   In particular:
+*
+*   1. Update the labour supply category globals and weekly hours
+*      thresholds defined in this master file. These may differ
+*      between males and females.
+*
+*   2. Update the construction of the labour supply category variables
+*      in 02_prepare_validation_data.do and
+*      03_prepare_simulation_data.do to ensure that observed and
+*      simulated hours are classified consistently with the model.
+*
+*   3. Review the income plotting do-files, particularly histograms
+*      conditional on labour supply category. Where category
+*      definitions differ by gender, these comparisons should be
+*      produced separately for males and females.
+*
+*   4. Check that plotting loops, category labels, graph names,
+*      and graph-combination commands reflect the country-specific
+*      labour supply categories.
+*
+*   Other country-specific assumptions and variable definitions
+*   should also be reviewed before running the validation.
 *
 *******************************************************************************/
 
@@ -172,8 +207,9 @@ global dir_init_pop_data "$path/data"
 
 * Folder containing SimPaths output: one subfolder per alignment scenario, 
 * each with a csv folder  >> EDIT <<
-global dir_sim_output "${dir_ind}/SimPathsES_output"
+global dir_sim_output "..."
 
+//${dir_ind}/SimPathsES_output
 
 /*******************************************************************************
 * DEFINE SAMPLE PARAMETERS
@@ -192,7 +228,7 @@ global max_age 65
 
 * Range of calendar years included in the validation sample
 global min_year 2011
-global max_year 2023
+global max_year 2024
 
 global min_sim_year ${min_year}
 global max_sim_year ${max_year}
@@ -201,15 +237,30 @@ global max_sim_year ${max_year}
 global age_become_responsible 18
 
 * Set labour supply categories
-global ls_cat "ZERO TWENTY FORTY FIFTY"
-global ls_cat_labour "TWENTY FORTY FIFTY"
+* Females  >> EDIT <<
+global ls_cat_f "ZERO TWENTY THIRTY THIRTY_SEVEN FORTY FIFTY"
+global ls_cat_labour_f "TWENTY THIRTY THIRTY_SEVEN FORTY FIFTY"
 
-* Weekly hours bands used for the SILC hours categories. They must match the
-* SimPaths labour supply categories for the country:
-* ES: CATEGORY_ES_1 = 6-35, CATEGORY_ES_2 = 36-40, CATEGORY_ES_3 = 41+
-global hrs_cat1_lb 6
-global hrs_cat1_ub 35
-global hrs_cat2_ub 40
+* Males  >> EDIT <<
+global ls_cat_m "ZERO TWENTY THIRTY_SEVEN FORTY FIFTY SIXTY"
+global ls_cat_labour_m "TWENTY THIRTY_SEVEN FORTY FIFTY SIXTY"
+
+* Weekly hours bands used for the SILC hours categories.
+* These must match the gender-specific SimPaths labour supply categories.
+* Females  >> EDIT <<
+global hrs_cat1_lb_f 6
+global hrs_cat1_ub_f 25
+global hrs_cat2_ub_f 34
+global hrs_cat3_ub_f 39
+global hrs_cat4_ub_f 40
+
+* Males  >> EDIT <<
+global hrs_cat1_lb_m 6
+global hrs_cat1_ub_m 34
+global hrs_cat2_ub_m 39
+global hrs_cat3_ub_m 40
+global hrs_cat4_ub_m 55
+
 
 * Number of simulation runs included in the multi-run outputs  >> EDIT <<
 global max_n_runs 5	
@@ -232,7 +283,11 @@ do "${dir_do_files}/03_create_EU_SILC_validation_targets.do"
 *******************************************************************************/
 
 * List of SimPath Set ups to loop through	>> EDIT <<
-global alignments "alignment_00_populationOFF alignment_01_population alignment_02a_population_fertility alignment_02b_population_cohabitation alignment_02c_population_disability alignment_02d_population_inschool alignment_02e_population_retirement alignment_03_population_fertility_cohabitation alignment_04_population_fertility_cohabitation_employment"
+global alignments "..."
+
+/*
+alignment_00_populationOFF alignment_01_population alignment_02a_population_fertility alignment_02b_population_cohabitation alignment_02c_population_disability alignment_02d_population_inschool alignment_02e_population_retirement alignment_03_population_fertility_cohabitation alignment_04_population_fertility_cohabitation_employment
+*/
 
 foreach align in $alignments {
 
@@ -275,7 +330,7 @@ foreach align in $alignments {
 	capture mkdir "$path/graphs/`align'/partnership"
 	capture mkdir "$path/graphs/`align'/poverty"
 	capture mkdir "$path/graphs/`align'/wages"
-
+	
 	
 /*******************************************************************************
 * PREPARE SIMULATED DATA AND PLOT GRAPHS
@@ -285,7 +340,7 @@ foreach align in $alignments {
 	do "${dir_do_files}/01_prepare_simulated_data.do"
 	
 	do "${dir_do_files}/02_create_simulated_validation_targets.do"
-
+	
 	* Plot figures
 	do "${dir_do_files}/04_01_plot_activity_status.do"
 	do "${dir_do_files}/04_02_plot_education_level.do"

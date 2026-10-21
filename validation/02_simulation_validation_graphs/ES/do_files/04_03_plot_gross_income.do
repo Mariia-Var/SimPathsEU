@@ -365,6 +365,7 @@ graph drop _all
 * 2 : Histograms 
 *******************************************************************************/
 
+/*
 /*******************************************************************************
 * 2.1 : Histograms - Benefit unit gross income by year, and by category of  
 weekly labour supply 
@@ -391,7 +392,7 @@ if "$trim_outliers" == "true" {
 qui sum year
 local min_year = 2011
 if "$min_sim_year" != "" local min_year = $min_sim_year
-local max_year = 2023
+local max_year = $max_year
 if "$max_sim_year" != "" local max_year = $max_sim_year
 
 
@@ -446,7 +447,7 @@ append using "$dir_data/temp_valid_stats.dta"
 qui sum year
 local min_year = 2011
 if "$min_sim_year" != "" local min_year = $min_sim_year
-local max_year = 2023
+local max_year = $max_year
 if "$max_sim_year" != "" local max_year = $max_sim_year
 
 
@@ -538,7 +539,7 @@ forval year = `min_year'/`max_year' {
 qui sum year
 local min_year = 2011
 if "$min_sim_year" != "" local min_year = $min_sim_year
-local max_year = 2023
+local max_year = $max_year
 if "$max_sim_year" != "" local max_year = $max_sim_year
 
 
@@ -563,7 +564,7 @@ forvalues year = `min_year'/`max_year' {
 }
 
 graph drop _all
-
+*/
 
 /*******************************************************************************
 * 2.2 : Histograms - Individual gross income by year, and by category of weekly 
@@ -610,7 +611,7 @@ forval year = `min_year'/`max_year' {
 	
 	drop d_valid v2
 
-	foreach ls in $ls_cat {
+	foreach ls in $ls_cat_m {
 	
 		twoway__histogram_gen valid_yGrossBuLevelYear if ///
 			year == `year' & valid_labHrsWorkEnumWeek == "`ls'", width(750) ///
@@ -655,7 +656,7 @@ append using "$dir_data/temp_valid_stats.dta"
 qui sum year
 local min_year = 2011
 if "$min_sim_year" != "" local min_year = $min_sim_year
-local max_year = 2023
+local max_year = $max_year
 if "$max_sim_year" != "" local max_year = $max_sim_year
 
 
@@ -686,17 +687,17 @@ forval year =  `min_year'/`max_year' {
 		color(green%30) legend(label(1 "SimPaths"))) ///
 	(hist valid_yGrossBuLevelYear if year == `year', width(750) ///
 		color(red%30) legend(label(2 "SILC"))) , ///
-		title("ALL hours") ///
+		title("ALL hrs") ///
 		name(ind_gross_inc_`year'_all, replace) ///
-		xtitle("Euro", size(small)) ///
-		ytitle("Density", size(small)) ///
+		xtitle("Euro", size(vsmall)) ///
+		ytitle("", size(vsmall)) ///
 		xlabel(,labsize(vsmall) angle(forty_five)) ///
 		ylabel(0(`steps')`max_y', labsize(vsmall)) ///
 		graphregion(color(white)) 
 	
 	drop d_sim v1 max_d_sim max_value
 		
-	foreach ls in $ls_cat {
+	foreach ls in $ls_cat_m {
 	
 		* Prepare info needed for dynamic y axis labels 
 		twoway__histogram_gen sim_yGrossBuLevelYear if ///
@@ -727,10 +728,10 @@ forval year =  `min_year'/`max_year' {
 		(hist valid_yGrossBuLevelYear if year == `year' & ///
 			valid_labHrsWorkEnumWeek == "`ls'", width(750) color(red%30) ///
 			legend(label(2 "SILC"))) , ///
-			title("`ls' hours")  ///
+			title("`ls' hrs")  ///
 			name(ind_gross_inc_`year'_`ls', replace) ///
-			xtitle("Euro", size(small)) ///
-			ytitle("Density", size(small)) ///
+			xtitle("Euro", size(vsmall)) ///
+			ytitle("", size(vsmall)) ///
 			xlabel(,labsize(vsmall) angle(forty_five)) ///
 			ylabel(0(`steps')`max_y', labsize(vsmall)) ///
 			legend(size(small)) ///
@@ -745,7 +746,7 @@ forval year =  `min_year'/`max_year' {
 qui sum year
 local min_year = 2011
 if "$min_sim_year" != "" local min_year = $min_sim_year
-local max_year = 2023
+local max_year = $max_year
 if "$max_sim_year" != "" local max_year = $max_sim_year
 
 
@@ -754,8 +755,10 @@ forvalues year = `min_year'/`max_year' {
 	grc1leg ind_gross_inc_`year'_all ///
 		ind_gross_inc_`year'_ZERO  ///
 		ind_gross_inc_`year'_TWENTY  ///
+		ind_gross_inc_`year'_THIRTY_SEVEN  ///
 		ind_gross_inc_`year'_FORTY  ///
-		ind_gross_inc_`year'_FIFTY , ///
+		ind_gross_inc_`year'_FIFTY ///
+		ind_gross_inc_`year'_SIXTY , ///
 		title("Individual Gross Income by Weekly Hours of Work") ///
 		subtitle("`year', males") ///
 		legendfrom(ind_gross_inc_`year'_ZERO) ///
@@ -799,7 +802,7 @@ if "$trim_outliers" == "true" {
 qui sum year
 local min_year = 2011
 if "$min_sim_year" != "" local min_year = $min_sim_year
-local max_year = 2023
+local max_year = $max_year
 if "$max_sim_year" != "" local max_year = $max_sim_year
 
 
@@ -813,7 +816,7 @@ forval year = `min_year'/`max_year' {
 	
 	drop d_valid v2
 
-	foreach ls in $ls_cat {
+	foreach ls in $ls_cat_f {
 	
 		twoway__histogram_gen valid_yGrossBuLevelYear if ///
 			year == `year' & valid_labHrsWorkEnumWeek == "`ls'", width(750) ///
@@ -858,7 +861,7 @@ append using "$dir_data/temp_valid_stats.dta"
 qui sum year
 local min_year = 2011
 if "$min_sim_year" != "" local min_year = $min_sim_year
-local max_year = 2023
+local max_year = $max_year
 if "$max_sim_year" != "" local max_year = $max_sim_year
 
 
@@ -883,10 +886,10 @@ forval year = `min_year'/`max_year' {
 		color(green%30) legend(label(1 "SimPaths"))) ///
 	(hist valid_yGrossBuLevelYear if year == `year', width(750) ///
 		color(red%30) legend(label(2 "SILC"))) , ///
-		title("ALL hours") ///
+		title("ALL hrs") ///
 		name(ind_gross_inc_`year'_all, replace) ///
-		xtitle("Euro", size(small)) ///
-		ytitle("Density", size(small)) ///
+		xtitle("Euro", size(vsmall)) ///
+		ytitle("", size(vsmall)) ///
 		xlabel(,labsize(vsmall) angle(forty_five)) ///
 		ylabel(0(`steps')`max_y', labsize(vsmall)) ///
 		legend(size(small)) ///
@@ -894,7 +897,7 @@ forval year = `min_year'/`max_year' {
 	
 	drop d_sim v1 max_d_sim max_value
 	
-	foreach ls in $ls_cat {
+	foreach ls in $ls_cat_f {
 	
 		* Prepare info needed for dynamic y axis labels 
 		twoway__histogram_gen sim_yGrossBuLevelYear if ///
@@ -919,10 +922,10 @@ forval year = `min_year'/`max_year' {
 		(hist valid_yGrossBuLevelYear if year == `year' & ///
 			valid_labHrsWorkEnumWeek == "`ls'", width(750) color(red%30) ///
 			legend(label(2 "SILC"))) , ///
-			title("`ls' hours")  ///
+			title("`ls' hrs")  ///
 			name(ind_gross_inc_`year'_`ls', replace) ///
-			xtitle("Euro", size(small)) ///
-			ytitle("Density", size(small)) ///
+			xtitle("Euro", size(vsmall)) ///
+			ytitle("", size(vsmall)) ///
 			xlabel(,labsize(vsmall) angle(forty_five)) ///
 			ylabel(0(`steps')`max_y', labsize(vsmall)) ///
 			legend(size(small)) ///
@@ -937,7 +940,7 @@ forval year = `min_year'/`max_year' {
 qui sum year
 local min_year = 2011
 if "$min_sim_year" != "" local min_year = $min_sim_year
-local max_year = 2023
+local max_year = $max_year
 if "$max_sim_year" != "" local max_year = $max_sim_year
 
 
@@ -946,7 +949,9 @@ forvalues year = `min_year'/`max_year' {
 	grc1leg ind_gross_inc_`year'_all ///
 		ind_gross_inc_`year'_ZERO  ///
 		ind_gross_inc_`year'_TWENTY ///
-		ind_gross_inc_`year'_FORTY /// 
+		ind_gross_inc_`year'_THIRTY  ///
+		ind_gross_inc_`year'_THIRTY_SEVEN  ///
+		ind_gross_inc_`year'_FORTY  ///
 		ind_gross_inc_`year'_FIFTY, ///
 		title("Individual Gross Income by Weekly Hours of Work") ///
 		subtitle("`year', females") ///

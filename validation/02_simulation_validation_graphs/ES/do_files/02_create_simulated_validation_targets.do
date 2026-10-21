@@ -195,28 +195,78 @@ gen sim_labHrsWorkWeek = labHrsWorkWeek
 
 * Hours worked weekly (categories) 
 /*
-For Spain these categries are symmetric cross genders. 
+For Spain these categries are asymmetric across genders. 
 */
-* Address generic lables 
-replace labHrsWorkEnumWeek = "ZERO" if labHrsWorkEnumWeek == "null"
-replace labHrsWorkEnumWeek = "TWENTY" if labHrsWorkEnumWeek == "CATEGORY_${country}_1"
-replace labHrsWorkEnumWeek = "FORTY" if labHrsWorkEnumWeek == "CATEGORY_${country}_2"
-replace labHrsWorkEnumWeek = "FIFTY" if labHrsWorkEnumWeek == "CATEGORY_${country}_3"
+* Address generic labels females  
+replace labHrsWorkEnumWeek = "ZERO" if ///
+	labHrsWorkEnumWeek == "null" & demMaleFlag == 0 
+replace labHrsWorkEnumWeek = "TWENTY" if ///
+	labHrsWorkEnumWeek == "CATEGORY_${country}_1" & demMaleFlag == 0  
+replace labHrsWorkEnumWeek = "THIRTY" if ///
+	labHrsWorkEnumWeek == "CATEGORY_${country}_2" & demMaleFlag == 0  
+replace labHrsWorkEnumWeek = "THIRTY_SEVEN" if ///
+	labHrsWorkEnumWeek == "CATEGORY_${country}_3" & demMaleFlag == 0  
+replace labHrsWorkEnumWeek = "FORTY" if ///
+	labHrsWorkEnumWeek == "CATEGORY_${country}_4" & demMaleFlag == 0  
+replace labHrsWorkEnumWeek = "FIFTY" if ///
+	labHrsWorkEnumWeek == "CATEGORY_${country}_5" & demMaleFlag == 0  
+
+* Address generic labels males  
+replace labHrsWorkEnumWeek = "ZERO" if ///
+	labHrsWorkEnumWeek == "null" & demMaleFlag == 1 
+replace labHrsWorkEnumWeek = "TWENTY" if ///
+	labHrsWorkEnumWeek == "CATEGORY_${country}_1" & demMaleFlag == 1  
+replace labHrsWorkEnumWeek = "THIRTY_SEVEN" if ///
+	labHrsWorkEnumWeek == "CATEGORY_${country}_2" & demMaleFlag == 1  
+replace labHrsWorkEnumWeek = "FORTY" if ///
+	labHrsWorkEnumWeek == "CATEGORY_${country}_3" & demMaleFlag == 1  
+replace labHrsWorkEnumWeek = "FIFTY" if ///
+	labHrsWorkEnumWeek == "CATEGORY_${country}_4" & demMaleFlag == 1  
+replace labHrsWorkEnumWeek = "SIXTY" if ///
+	labHrsWorkEnumWeek == "CATEGORY_${country}_5" & demMaleFlag == 1 
+
 
 gen sim_labHrsWorkEnumWeek = labHrsWorkEnumWeek
 
 gen sim_labHrsWorkEnum_no = .
 replace sim_labHrsWorkEnum_no = 0 if labHrsWorkEnumWeek == "ZERO" 
 replace sim_labHrsWorkEnum_no = 20 if labHrsWorkEnumWeek == "TWENTY" 
+replace sim_labHrsWorkEnum_no = 30 if labHrsWorkEnumWeek == "THIRTY" 
+replace sim_labHrsWorkEnum_no = 37 if labHrsWorkEnumWeek == "THIRTY_SEVEN" 
 replace sim_labHrsWorkEnum_no = 40 if labHrsWorkEnumWeek == "FORTY" 
 replace sim_labHrsWorkEnum_no = 50 if labHrsWorkEnumWeek == "FIFTY" 
+replace sim_labHrsWorkEnum_no = 60 if labHrsWorkEnumWeek == "SIXTY" 
 
 * Categorical variable 
 gen sim_cat_hours = .
-replace sim_cat_hours = 1 if labHrsWorkEnumWeek == "ZERO" 
-replace sim_cat_hours = 2 if labHrsWorkEnumWeek == "TWENTY" 
-replace sim_cat_hours = 3 if labHrsWorkEnumWeek == "FORTY" 
-replace sim_cat_hours = 4 if labHrsWorkEnumWeek == "FIFTY" 
+
+* Females 
+replace sim_cat_hours = 1 if labHrsWorkEnumWeek == "ZERO" & ///
+	demMaleFlag == 0  
+replace sim_cat_hours = 2 if labHrsWorkEnumWeek == "TWENTY" & ///
+	demMaleFlag == 0  
+replace sim_cat_hours = 3 if labHrsWorkEnumWeek == "THIRTY" & ///
+	demMaleFlag == 0  
+replace sim_cat_hours = 4 if labHrsWorkEnumWeek == "THIRTY_SEVEN" & ///
+	demMaleFlag == 0  
+replace sim_cat_hours = 5 if labHrsWorkEnumWeek == "FORTY" & ///
+	demMaleFlag == 0  
+replace sim_cat_hours = 6 if labHrsWorkEnumWeek == "FIFTY" & ///
+	demMaleFlag == 0  
+
+* Males 
+replace sim_cat_hours = 1 if labHrsWorkEnumWeek == "ZERO" & ///
+	demMaleFlag == 1  
+replace sim_cat_hours = 2 if labHrsWorkEnumWeek == "TWENTY" & ///
+	demMaleFlag == 1  
+replace sim_cat_hours = 3 if labHrsWorkEnumWeek == "THIRTY_SEVEN" & ///
+	demMaleFlag == 1  
+replace sim_cat_hours = 4 if labHrsWorkEnumWeek == "FORTY" & ///
+	demMaleFlag == 1  
+replace sim_cat_hours = 5 if labHrsWorkEnumWeek == "FIFTY" & ///
+	demMaleFlag == 1  
+replace sim_cat_hours = 6 if labHrsWorkEnumWeek == "SIXTY" & ///
+	demMaleFlag == 1  
 
 tab labHrsWorkEnumWeek year
 

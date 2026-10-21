@@ -255,7 +255,7 @@ if "$trim_outliers" == "true" {
 qui sum year
 local min_year = 2011
 if "$min_sim_year" != "" local min_year = $min_sim_year
-local max_year = 2023
+local max_year = $max_year
 if "$max_sim_year" != "" local max_year = $max_sim_year
 
 
@@ -299,7 +299,7 @@ append using "$dir_data/temp_valid_stats.dta"
 qui sum year
 local min_year = 2011
 if "$min_sim_year" != "" local min_year = $min_sim_year
-local max_year = 2023
+local max_year = $max_year
 if "$max_sim_year" != "" local max_year = $max_sim_year
 
 
@@ -376,7 +376,7 @@ if "$trim_outliers" == "true" {
 qui sum year
 local min_year = 2011
 if "$min_sim_year" != "" local min_year = $min_sim_year
-local max_year = 2023
+local max_year = $max_year
 if "$max_sim_year" != "" local max_year = $max_sim_year
 
 
@@ -421,7 +421,7 @@ append using "$dir_data/temp_valid_stats.dta"
 qui sum year
 local min_year = 2011
 if "$min_sim_year" != "" local min_year = $min_sim_year
-local max_year = 2023
+local max_year = $max_year
 if "$max_sim_year" != "" local max_year = $max_sim_year
 
 
@@ -491,7 +491,7 @@ if "$trim_outliers" == "true" {
 qui sum year
 local min_year = 2011
 if "$min_sim_year" != "" local min_year = $min_sim_year
-local max_year = 2023
+local max_year = $max_year
 if "$max_sim_year" != "" local max_year = $max_sim_year
 
 
@@ -536,7 +536,7 @@ append using "$dir_data/temp_valid_stats.dta"
 qui sum year
 local min_year = 2011
 if "$min_sim_year" != "" local min_year = $min_sim_year
-local max_year = 2023
+local max_year = $max_year
 if "$max_sim_year" != "" local max_year = $max_sim_year
 
 

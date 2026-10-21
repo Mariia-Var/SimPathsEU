@@ -213,29 +213,88 @@ rename lhw labHrsWorkWeek
 
 gen valid_labHrsWorkWeek = labHrsWorkWeek
 
+
 * Hours worked weekly (categories)
 * Bands set in the master file to match the SimPaths categories
-* (CATEGORY_${country}_1/2/3), which 02 maps to TWENTY/FORTY/FIFTY
-gen valid_labHrsWorkEnumWeek = "ZERO"
+
+gen valid_labHrsWorkEnumWeek = "ZERO" 
+
+* Females 
 replace valid_labHrsWorkEnumWeek = "TWENTY" if ///
-	labHrsWorkWeek >= ${hrs_cat1_lb} & labHrsWorkWeek <= ${hrs_cat1_ub}
+	labHrsWorkWeek >= ${hrs_cat1_lb_f} & labHrsWorkWeek <= ${hrs_cat1_ub_f} ///
+	& demMaleFlag == 0 
+replace valid_labHrsWorkEnumWeek = "THIRTY" if ///
+	labHrsWorkWeek > ${hrs_cat1_ub_f} & labHrsWorkWeek <= ${hrs_cat2_ub_f} ///
+	& demMaleFlag == 0 
+replace valid_labHrsWorkEnumWeek = "THIRTY_SEVEN" if ///
+	labHrsWorkWeek > ${hrs_cat2_ub_f} & labHrsWorkWeek <= ${hrs_cat3_ub_f} ///
+	& demMaleFlag == 0 	
 replace valid_labHrsWorkEnumWeek = "FORTY" if ///
-	labHrsWorkWeek > ${hrs_cat1_ub} & labHrsWorkWeek <= ${hrs_cat2_ub}
+	labHrsWorkWeek > ${hrs_cat3_ub_f} & labHrsWorkWeek <= ${hrs_cat4_ub_f} ///
+	& demMaleFlag == 0 	
 replace valid_labHrsWorkEnumWeek = "FIFTY" if ///
-	labHrsWorkWeek > ${hrs_cat2_ub} & !missing(labHrsWorkWeek)
+	labHrsWorkWeek > ${hrs_cat4_ub_f} & !missing(labHrsWorkWeek) ///
+	& demMaleFlag == 0 	
+	
+* Males 
+replace valid_labHrsWorkEnumWeek = "TWENTY" if ///
+	labHrsWorkWeek >= ${hrs_cat1_lb_m} & labHrsWorkWeek <= ${hrs_cat1_ub_m} ///
+	& demMaleFlag == 1 
+replace valid_labHrsWorkEnumWeek = "THIRTY_SEVEN" if ///
+	labHrsWorkWeek > ${hrs_cat1_ub_m} & labHrsWorkWeek <= ${hrs_cat2_ub_m} ///
+	& demMaleFlag == 1 
+replace valid_labHrsWorkEnumWeek = "FORTY" if ///
+	labHrsWorkWeek > ${hrs_cat2_ub_m} & labHrsWorkWeek <= ${hrs_cat3_ub_m} ///
+	& demMaleFlag == 1 	
+replace valid_labHrsWorkEnumWeek = "FIFTY" if ///
+	labHrsWorkWeek > ${hrs_cat3_ub_m} & labHrsWorkWeek <= ${hrs_cat4_ub_m} ///
+	& demMaleFlag == 1 	
+replace valid_labHrsWorkEnumWeek = "SIXTY" if ///
+	labHrsWorkWeek > ${hrs_cat4_ub_m} & !missing(labHrsWorkWeek) ///
+	& demMaleFlag == 1 	
+	
 
 gen valid_labHrsWorkEnum_no = .
 replace valid_labHrsWorkEnum_no = 0 if valid_labHrsWorkEnumWeek == "ZERO" 
 replace valid_labHrsWorkEnum_no = 20 if valid_labHrsWorkEnumWeek == "TWENTY" 
+replace valid_labHrsWorkEnum_no = 30 if valid_labHrsWorkEnumWeek == "THIRTY" 
+replace valid_labHrsWorkEnum_no = 37 if ///
+	valid_labHrsWorkEnumWeek == "THIRTY_SEVEN" 
 replace valid_labHrsWorkEnum_no = 40 if valid_labHrsWorkEnumWeek == "FORTY" 
-replace valid_labHrsWorkEnum_no = 50 if valid_labHrsWorkEnumWeek == "FIFTY" 	
+replace valid_labHrsWorkEnum_no = 50 if valid_labHrsWorkEnumWeek == "FIFTY" 
+replace valid_labHrsWorkEnum_no = 60 if valid_labHrsWorkEnumWeek == "SIXTY" 	
 	
 * Categorical variable 
 gen valid_cat_hours = .
-replace valid_cat_hours = 1 if valid_labHrsWorkEnumWeek == "ZERO" 
-replace valid_cat_hours = 2 if valid_labHrsWorkEnumWeek == "TWENTY" 
-replace valid_cat_hours = 3 if valid_labHrsWorkEnumWeek == "FORTY" 
-replace valid_cat_hours = 4 if valid_labHrsWorkEnumWeek == "FIFTY" 	
+
+* Females 
+replace valid_cat_hours = 1 if valid_labHrsWorkEnumWeek == "ZERO" & ///
+	demMaleFlag == 0
+replace valid_cat_hours = 2 if valid_labHrsWorkEnumWeek == "TWENTY" & ///
+	demMaleFlag == 0
+replace valid_cat_hours = 3 if valid_labHrsWorkEnumWeek == "THIRTY" & ///
+	demMaleFlag == 0
+replace valid_cat_hours = 4 if valid_labHrsWorkEnumWeek == "THIRTY_SEVEN" & ///
+	demMaleFlag == 0
+replace valid_cat_hours = 5 if valid_labHrsWorkEnumWeek == "FORTY" & ///
+	demMaleFlag == 0
+replace valid_cat_hours = 6 if valid_labHrsWorkEnumWeek == "FIFTY" & ///
+	demMaleFlag == 0
+
+* Males 
+replace valid_cat_hours = 1 if valid_labHrsWorkEnumWeek == "ZERO" & ///
+	demMaleFlag == 1
+replace valid_cat_hours = 2 if valid_labHrsWorkEnumWeek == "TWENTY" & ///
+	demMaleFlag == 1
+replace valid_cat_hours = 3 if valid_labHrsWorkEnumWeek == "THIRTY_SEVEN" & ///
+	demMaleFlag == 1
+replace valid_cat_hours = 4 if valid_labHrsWorkEnumWeek == "FORTY" & ///
+	demMaleFlag == 1
+replace valid_cat_hours = 5 if valid_labHrsWorkEnumWeek == "FIFTY" & ///
+	demMaleFlag == 1
+replace valid_cat_hours = 6 if valid_labHrsWorkEnumWeek == "SIXTY" & ///
+	demMaleFlag == 1	
+	
 	
 * Hourly wage 
 // obs_earnings_hourly - alternative only containing observed wages
@@ -369,32 +428,6 @@ gen valid_yDispBuEquivYear = valid_yDispBuLevelYear / moecd_eq
 
 drop is_older_child is_child moecd_eq
 
-
-* Minimum wage variable'
-/* 
-gen min_wage = 8.66 if year == 2011
-replace min_wage = 9.38 if year == 2012
-replace min_wage = 10.00 if year == 2013
-replace min_wage = 10.5 if year == 2014
-replace min_wage = 10.64 if year == 2015
-replace min_wage = 11.56 if year == 2016
-replace min_wage = 12.50 if year == 2017
-replace min_wage = 13.13 if year == 2018
-replace min_wage = 14.06 if year == 2019
-replace min_wage = 16.25 if year == 2020
-replace min_wage = 17.50 if year == 2021
-replace min_wage = 18.81 if year == 2022
-replace min_wage = 22.8 if year == 2023
-
-* Convert into real terms
-replace min_wage = min_wage * (CPI/100)
-
-gen valid_wage_hour_adj_mw = valid_wage
-replace valid_wage_hour_adj_mw = min_wage if valid_wage < min_wage
-
-replace valid_wage_hour_adj = valid_wage
-replace valid_wage_hour_adj = . if valid_wage < min_wage
-*/
 
 * Restrict sample to relevant validation years 
 drop if year < ${min_sim_year}
