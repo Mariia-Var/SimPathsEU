@@ -80,6 +80,8 @@ global max_age 65
 * Observations up to and including this simulated year will be kept in the sample
 global min_year 2011
 global max_year 2023
+global min_sim_year ${min_year}
+global max_sim_year ${max_year}
 
 * Define age to become responsible as defined in the simulation
 global age_become_responsible 16
