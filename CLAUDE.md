@@ -1,10 +1,37 @@
-can you# CLAUDE.md
+# CLAUDE.md
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 ## Project Overview
 
-SimPaths is a JAS-mine-based microsimulation model that projects individual and household life course events (career, family, health, finances) for EU countries. This repository covers Greece (EL), Italy (IT), Hungary (HU), and Poland (PL). It integrates with EUROMOD for tax/benefit policy simulation.
+SimPaths is a JAS-mine-based microsimulation model that projects individual and household life course events (career, family, health, finances) for EU countries. This repository covers Greece (EL), Italy (IT), Spain (ES), Hungary (HU), and Poland (PL). It integrates with EUROMOD for tax/benefit policy simulation.
+
+### Spain (ES)
+
+ES is a first-class country in the Java code: `Country.ES("Spain", 13)`, `Region.ES1`–`ES7` (NUTS-1), `Person.Regressors.ES1`–`ES7`, an ES block in `BenefitUnit.getRegressionValue`, and Spanish state-pension rules in `Parameters.getStatePensionAge` (statutory ages given in years and months).
+
+**Labour choice.** No work plus five gender-specific hour bands, `Labour.CATEGORY_ES_1`–`5` (ids 51–55): women 6–25 / 26–34 / 35–39 / 40 / 41+, men 6–34 / 35–39 / 40 / 41–55 / 56+. The choice is scored at each band's representative hours (for every country, `Parameters.useRepresentativeHoursInUtility`). Realised hours: with `Parameters.USE_SILC_LHW_DISTRIBUTION_ES = true` (the default) every positive band draws from the EU-SILC within-band distribution of observed hours for the person's gender and sample type — `Couple`, `Single_dep` (partner not flexible), `Adult_child`, `Single_indep` — read from `input/ES/silc_lhw_distribution.xlsx`, the top band running to `MAX_LABOUR_HOURS_IN_WEEK` (84). With the flag off, only the 35–39 band (`ES_3` for women, `ES_2` for men) spreads realised hours uniformly and every other band realises at its representative hours.
+
+**Inputs (`input/ES/`).** All Spanish data, except where listed under "Still outstanding":
+
+- `InitialPopulations/population_initial_ES_2011..2024.csv` — 44-column camelCase schema, `demRgn ∈ {1…7}`; the committed training subset is in `InitialPopulations/training/`.
+- `EUROMODoutput/es_2005..2025_std.txt` — EUROMOD ES output (`dct = 13`, 344 columns); tax-unit identifier `tu_nucfam_HeadID`, mapped in `input/system_bu_names.xlsx`. Training subset in `EUROMODoutput/training/`.
+- Eleven of the twelve `reg_*.xlsx` use `ES1`–`ES6` region dummies with `ES7` (Canarias) omitted; `reg_wages`, `reg_employmentSelection` and `reg_fertility` also include `ES7`, and `reg_RMSE` has no region dummies. Regression do-files are in `do_files_reg_estim/`; superseded workbooks are kept in `reg_estimOLD/`.
+- `align_popProjections.xlsx` is keyed on `ES1`–`ES7`; `time_series_factor.xlsx` is Spain's uprating series.
+- `scenario_retirementAgeFixed.xlsx` follows `Parameters.getStatePensionAge` case `"ES"`: 65 to 2017, 66 for 2018–2023, 67 from 2024, gender-neutral.
+- There is no `social_care_parameters.xlsx`. It is optional and read only when `projectSocialCare` is on (off by default); turning it on for ES fails with an explicit error.
+- `alignment_adjustment_factors.xlsx` is **meant** to be identical across countries, so don't flag it as a copy. All 13 data sheets are zero-filled: zero is the neutral cold start for a fresh calibration. Aligned runs search for the adjustment path and overwrite only the in-memory map. The workbook is never written back, so to reuse calibrated values, copy them in by hand (see the file's own `Info` sheet).
+- `input/DatabaseCountryYear.xlsx` includes ES, and `src/main/resources/images/ES.png` supplies the GUI flag.
+
+**Labour-supply estimates (`reg_labourSupplyUtility.xlsx`).** Do-files are in `input/ES/do-files_LS_ES_NEW/`. Leisure is in hours in every sheet. Choice-specific regressors are evaluated by `BenefitUnit.EsLabourChoiceRegressor`. They are `Liwwh_k`, `HealthSelfRatedGood_k`, `HealthSelfRatedVeryGoodExcel_k`, `eduDehC4{Medium,High}_k` (adult children) and `eduDehC4High_{Male,Female}_k` (couples; there are no Medium terms). Each codes the alternative `k` as 10 × male band + female band. The income coefficients are in **2023 prices** (EU-SILC 2024 through EUROMOD 2023 systems, not deflated), while the model holds income in 2015 prices. The workbook is left as estimated. Instead, `BenefitUnit` multiplies income in every labour-supply regressor by `Parameters.getLabourSupplyIncomePriceFactor()`, the 2023/2015 inflation ratio from `time_series_factor.xlsx` (ES 1.199; EL 1.158, HU 1.606, IT 1.209, PL 1.435). The price year is set per country by the key `LABOUR_SUPPLY_ESTIMATION_PRICE_YEAR` in `input/<CC>/parameters.xlsx`. The Java field of that name defaults to 2023 and is non-final so the loader can overwrite it.
+
+**Education (`reg_education.xlsx`, `do_files_reg_estim/01_reg_education_ES.do`).** E1a uses `Parents_ypnb_Q2..Q5_L1`, the quintile of co-resident parents' lagged summed `ypnbihs_dv`. E1b uses `Parents_known_L1` and `Parents_known_Ydses_Q2..Q5_L1`. `Person.getCoresidentParents()` finds parents among household members only. It matches on simulation ids and, for initial-population adults (whose `idMother`/`idFather` the clone constructor does not copy), on the survey ids in `idMother/FatherImmutable`. `SimPathsModel.updateParentsIncomeQuintiles()` recomputes the quintile cut-offs each year (as Stata `xtile` does, over persons 15+ with a co-resident parent) and is scheduled before `InSchoolAlignment`.
+
+**Still outstanding before `-c ES` is trustworthy:**
+
+- `align_educLevel.xlsx` is still byte-identical to PL's and needs Spanish values.
+- The labour-supply estimation sums income over the whole household, while the model uses benefit-unit income.
+- The `Region.ES1`–`ES7` code↔name mapping has not been checked against the EUROMOD ES country report (TODO at `Region.java:22`).
 
 **Data access**: The input data is not freely shareable. Training data is provided for development, but results from training data should not be interpreted beyond development purposes. Contact maintainers via GitHub issues for real data access.
 
@@ -33,11 +60,11 @@ CLI help: `java -jar singlerun.jar -h` or `java -jar multirun.jar -h`
 
 ### Key CLI flags
 
-- `-c <CC>` country code (`EL`, `IT`, `HU`, `PL`); `-s` start year; `-e` end year; `-p` population size; `-g true|false` show GUI.
+- `-c <CC>` country code (`EL`, `IT`, `ES`, `HU`, `PL`); `-s` start year; `-e` end year; `-p` population size; `-g true|false` show GUI.
 - `-t true|false` (`--training`) — use the training-data subset under `input/<CC>/InitialPopulations/training/` and `EUROMODoutput/training/` (uses `TaxDonorParserTraining`). On `multirun.jar` this **overrides** `parameter_args.trainingFlag` from the YAML config.
 - `singlerun.jar -Setup` — setup phase only (build the H2 input DB, no simulation). Multi-run equivalent is `-DBSetup`.
 - `multirun.jar -r <seed>` random seed, `-n <N>` max runs, `-f` output to file, `-config <file.yml>` custom config (default `config/default.yml`).
-- **Training auto-detect**: if `-t` is omitted and `input/<CC>/InitialPopulations/*.csv` is empty, `Parameters.trainingFlag` is flipped to `true` automatically and a notice is printed to stdout (`SimPathsStart.java:363-368, 520-525`). To diagnose which mode is active at runtime, look for either `Training-data flag set explicitly via CLI: -t ...` or `auto-switching to training data` in the console output.
+- **Training auto-detect**: if `-t` is omitted and `input/<CC>/InitialPopulations/*.csv` is empty, `Parameters.trainingFlag` is flipped to `true` automatically and a notice is printed to stdout (both the headless setup path and the GUI start-up path in `SimPathsStart`). To diagnose which mode is active at runtime, look for either `Training-data flag set explicitly via CLI: -t ...` or `auto-switching to training data` in the console output.
 
 ## Architecture
 
@@ -71,6 +98,57 @@ CLI help: `java -jar singlerun.jar -h` or `java -jar multirun.jar -h`
 4. **Alignment**: Mahalanobis-distance resampling adjusts distributions to match targets (YAML configs in `config/alignment_*.yml`)
 5. **Collection**: `SimPathsCollector` exports CSV statistics and optional DB snapshots to timestamped `output/` subdirectories
 
+### Statistics output files
+
+Six domain CSVs are written to `output/<run>/csv/`, one row per simulated year unless noted:
+
+| File | Cols | Contents | Toggle |
+|------|------|----------|--------|
+| `WealthIncomeStatistics.csv` | 31 | Gini, income percentiles, median EDI, S-Index, plus income and wealth by age band | `persistWealthIncomeStatistics` |
+| `DemographicStatistics.csv` | 9 | Partnership rates, dependent children, population counts by age band | `persistDemographicStatistics` |
+| `HealthStatistics.csv` | 6 | Mean self-rated health and disability shares by age band | `persistHealthStatistics` |
+| `LabourStatistics.csv` | 10 | Transitions and participation (16–64), full-time / part-time shares by age band | `persistLabourStatistics` |
+| `AlignmentStatistics.csv` | 36 | Alignment adjustment factors, simulated shares, target shares | `persistAlignmentStatistics` |
+| `HealthByGender.csv` | 10 | Self-rated health and disability, ages 16–64, Total / Male / Female — **3 rows per year** | `persistHealthByGender` |
+
+Age bands throughout are 18–29, 30–54 and 55–74. `DemographicStatistics.csv` carries the
+population counts that are the denominator for the age-band statistics in the other three
+wide files, so keep it enabled when interpreting them.
+
+Two rules in JAS-mine's `microsim.data.ExportCSV` (verified against 4.3.24) govern all of this:
+
+1. **The filename is the runtime type handed to `DataExport`.** For a `Collection` it is
+   `getSimpleName()`; for a bare object it is `getSimpleName() + <PanelEntityKey id>`. That
+   trailing `1` is why these files used to be `Statistics1.csv`, `Statistics21.csv`,
+   `EmploymentStatistics1.csv`, `HealthStatistics1.csv` and
+   `AlignmentAdjustmentFactors1.csv`. They are now wrapped in `List.of(...)` in
+   `SimPathsCollector.buildObjects()` so they take the collection branch. Renaming an output
+   therefore means renaming its class.
+2. **CSV columns are Java field names, sorted alphabetically** (a `TreeSet` over non-`@Transient`
+   fields). The `@Column` annotation names only the H2 database column — renaming it changes
+   nothing in the CSV, while renaming a field renames *and reorders* the CSV column.
+
+The four wide outputs are fed from one shared traversal of the population,
+`AgeBandAggregates`, cached per simulated year in `SimPathsCollector.ageBands()`. Each output
+has an independent toggle and its own dump event, so none may assume another has run.
+
+Twelve columns of the former `Statistics21.csv` were calibration loss-function terms, not
+statistics: a hard-coded pooled-2019-UKHLS target was subtracted from the simulated value
+invisibly, so shares were reported negative and expenditure below zero. Nothing read them and
+the targets were meaningless for the EU countries, so they were deleted —
+`labNoWork*Share` (recoverable as 1 − full-time − part-time), `x*Avg`, `xToLeisureRatio` and
+`statYDisp*Avg`. `statYDispGrossOfLosses*Avg` is a level and survives. `statYLab*Avg` was
+renamed `statYLabWeeklyPerWorker*Avg` because, unlike every income column beside it, it is
+weekly, unequivalised and per worker rather than monthly, equivalised and per capita.
+
+**When renaming an exported entity**, an IDE rename does not reach everything: the class in
+`data/statistics/`, the `SimPathsCollector` fields / `Processes` constants / `onEvent` cases /
+`buildObjects` / `buildSchedule` / `@GUIparameter` toggles and accessors, the
+`persistence.xml` entity list, the `persist*` **YAML config keys** (resolved via
+`getDeclaredField`, so a stale key is silently ignored rather than an error), the integration
+test paths and method names, the golden CSVs (including the `id_<ClassName>` header label),
+the Stata validation do-files under `validation/`, and this file.
+
 ### Data Inputs
 
 - `input/input.mv.db` — H2 database with processed EU-SILC starting population
@@ -80,13 +158,14 @@ CLI help: `java -jar singlerun.jar -h` or `java -jar multirun.jar -h`
 - `input/DatabaseCountryYear.xlsx` — Cross-country/year index
 - `config/default.yml` — Default multi-run parameters (population size, year range, run count)
 - `config/alignment_*.yml` — Staged alignment configurations
-- `config/test_create_database.yml`, `config/test_run.yml` — Configs used by the integration test
+- `config/test_create_database_<CC>.yml`, `config/test_run_<CC>.yml` — Configs used by that country's integration test (`PL`, `ES`)
 
 ### Repository layout (beyond `src/`)
 
-- `scripts/` — shell wrappers for batch multi-runs (`run_alignment_multiruns.sh`, `run_multiruns-alignPopOFF.sh`, `run_TEST_multiruns.sh`, …)
-- `input_processing/` — Stata do-files that prepare model inputs upstream of the Java pipeline (master conditions, regression-estimate cleaning, lag-structure generation)
-- `tools/generate_simpaths_eu_variable_codebook.py` — variable codebook generator
+- `scripts/` — shell wrappers for batch multi-runs (currently `run_alignment_multiruns.sh`)
+- `input_processing/` — Stata do-files that prepare model inputs upstream of the Java pipeline (master conditions, regression-estimate cleaning, lag-structure generation). For ES: `90_cleaning_excel_inputs.do` reads `reg_estimates_ES_toClean/` and writes `reg_estimates_ES_Cleaned/`.
+- `input/<CC>/DoFilesTargets/` — Stata do-files that build that country's alignment-target workbooks from the initial populations (`01`–`05` for retirement, in-school, disability, partnership and employment) plus `91_plot_targets_from_xlsx.do` for the target plots
+- `documentation/` also holds `SimPathsEU_Variable_Codebook.xlsx` (variable codebook)
 - `validation/` — Stata validation against EU-SILC/EUROMOD targets
 - `documentation/` — supplementary documentation
 - `output/` — timestamped simulation outputs (created at runtime)
@@ -107,7 +186,29 @@ JUnit 5 + Mockito. Tests in `src/test/java/simpaths/`:
 - `experiment/SimPathsMultiRunTest` — Multi-run configuration
 - `experiment/PersonTest` — Person entity logic
 - `data/MahalanobisDistanceTest` — Statistical matching
-- `integrationtest/RunSimPathsIntegrationTest` — End-to-end run using `config/test_create_database.yml` + `config/test_run.yml`
+- `integrationtest/SimPathsIntegrationTestBase` — the shared, country-agnostic machinery; a country test is a subclass naming only its two configs
+- `integrationtest/RunSimPathsPLIntegrationTest` — end-to-end run for **Poland**, `config/test_create_database_PL.yml` + `config/test_run_PL.yml` (`trainingFlag: true`)
+- `integrationtest/RunSimPathsESIntegrationTest` — the same run for **Spain**, `config/test_create_database_ES.yml` + `config/test_run_ES.yml` (`trainingFlag: true`)
+
+The integration tests are excluded from `mvn test` (surefire) and run under failsafe:
+
+```bash
+mvn clean package -DskipTests                       # the tests shell out to multirun.jar, so build it first
+mvn verify -Dit.test=RunSimPathsPLIntegrationTest   # Poland only
+mvn verify -Dit.test=RunSimPathsESIntegrationTest   # Spain only
+mvn verify                                          # both, sequentially
+```
+
+Output folders and golden-file folders are both derived from the country code and `parameter_args.trainingFlag`, so adding a country needs no path wiring:
+
+```
+output/INTEGRATION_TESTS[_TRAINING]_<CC>/csv/                    # produced by the run
+src/test/java/simpaths/integrationtest/expected[_training]_<CC>/ # diffed against
+```
+
+Both countries default to `trainingFlag: true`, so both baselines are **committed** and CI-checked; the real-data baselines are gitignored and captured locally per developer (see each `expected*` folder's README). The flag lives only in the run config — the test passes it to the `-DBSetup` step as `-t`, so the `test_create_database_<CC>.yml` files do not repeat it.
+
+Because each country has its own folders, either test can be run on its own, in any order. They do share `input/input.mv.db` and `input/DatabaseCountryYear.xlsx`, which each test rebuilds in its own `-DBSetup` step, so never run them concurrently.
 
 ## Branch Conventions
 

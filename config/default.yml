@@ -53,8 +53,12 @@ collector_args:
 #    calculateGiniCoefficients: false
 #    exportToDatabase: false
 #    exportToCSV: true
-#    persistStatistics: true
-#    persistStatistics2: true
+#    persistWealthIncomeStatistics: true
+#    persistDemographicStatistics: true
+#    persistHealthStatistics: true
+#    persistHealthByGender: true
+#    persistLabourStatistics: true
+#    persistAlignmentStatistics: true
 #    persistPersons: false
 #    persistBenefitUnits: false
 #    persistHouseholds: false
