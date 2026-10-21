@@ -1,14 +1,35 @@
+
+/*******************************************************************************
+* PROJECT:              SimPaths EU
+* DO-FILE NAME:         04_16_plot_number_children.do
+* DESCRIPTION:          Plots observed and simulated child-related outcomes.
+* COUNTRY:              ES
+* DATA:                 EU-SILC validation sample and SimPaths outputs
+* AUTHOR:               Ashley Burdett
+* LAST UPDATE:          21 October 2026
 ********************************************************************************
-* PROJECT:  		SimPaths EU
-* SECTION:			Validation
-* OBJECT: 			Children
-* AUTHORS:			Ashley Burdett 
-* LAST UPDATE:		Jan 2026
-* COUNTRY: 			PL
-********************************************************************************
-* NOTES: 			This do file plots simulated and SILC % of benefit units
-*			 		with a given number of children 
-********************************************************************************
+* NOTES:
+*
+*   -----------------------------------------------------------------------
+*    What this file does
+*   -----------------------------------------------------------------------
+*   This do-file generates validation plots comparing child-related
+*   demographic outcomes in EU-SILC and SimPaths.
+*
+*   The plots compare annual shares of individuals aged 18-65 according to the 
+* 	number of children under 18 in their benefit unit (0, 1, 2, or 3+), both 
+* 	overall and separately by gender.
+*
+*   Additional plots examine the share of individuals with at least one child 
+* 	aged 0-2 or a newborn child, overall and by gender.
+*
+*   The file also compares annual birth outcomes for women aged 18-40 using the 
+* 	observed and simulated newborn indicators.
+*
+*   Observed EU-SILC outcomes are calculated using survey weights and compared 
+* 	with the mean simulated outcomes across multiple simulation runs.
+*
+*******************************************************************************/
 
 ********************************************************************************
 * 1 : Mean values over time

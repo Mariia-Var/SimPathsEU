@@ -1,13 +1,28 @@
+
+/*******************************************************************************
+* PROJECT:              SimPaths EU
+* DO-FILE NAME:         04_12_plot_partnership_status.do
+* DESCRIPTION:          Plots observed and simulated partnership status.
+* COUNTRY:              ES
+* DATA:                 EU-SILC validation sample and SimPaths outputs
+* AUTHOR:               Ashley Burdett
+* LAST UPDATE:          21 October 2026
 ********************************************************************************
-* PROJECT:  		SimPaths EU
-* SECTION:			Validation
-* OBJECT: 			Partnership
-* AUTHORS:			Ashley Burdett 
-* LAST UPDATE:		Jan 2026
-* COUNTRY: 			PL
-********************************************************************************
-* NOTES: 			
-********************************************************************************
+* NOTES:
+*
+*   -----------------------------------------------------------------------
+*    What this file does
+*   -----------------------------------------------------------------------
+*   This do-file generates validation plots comparing partnership
+*   status in EU-SILC and SimPaths.
+*
+*   Partnership status is classified into two categories: partnered
+*   and single.
+*
+*   The plots compare observed EU-SILC outcomes with simulated
+*   outcomes across multiple simulation runs.
+*
+*******************************************************************************/
 
 ********************************************************************************
 * 1 : Mean values over time

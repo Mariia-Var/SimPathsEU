@@ -1,15 +1,30 @@
-********************************************************************************
-* PROJECT:  		SimPaths EU 
-* SECTION:			Validation
-* OBJECT: 			Capital income
-* AUTHORS:			Ashley Burdett 
-* LAST UPDATE:		April 2026 (AB)
-* COUNTRY: 			PL 
-********************************************************************************
-* NOTES: 			This do file plots simulated and SILC capital income, 
-*					per benefit unit
 
+/*******************************************************************************
+* PROJECT:              SimPaths EU
+* DO-FILE NAME:         04_05_plot_capital_income.do
+* DESCRIPTION:          Plots observed and simulated capital income.
+* COUNTRY:              ES
+* DATA:                 EU-SILC validation sample and SimPaths outputs
+* AUTHOR:               Ashley Burdett
+* LAST UPDATE:          21 October 2026
 ********************************************************************************
+* NOTES:
+*
+*   -----------------------------------------------------------------------
+*    What this file does
+*   -----------------------------------------------------------------------
+*   This do-file generates validation plots comparing capital income
+*   in EU-SILC and SimPaths.
+*
+*   The plots compare observed EU-SILC outcomes with the mean simulated
+*   outcomes across multiple simulation runs.
+*
+*   Capital income is expressed in annual amounts and aggregated at
+*   the benefit-unit level.
+*
+*
+*******************************************************************************/
+
 
 ********************************************************************************
 * 1 : Time series
@@ -205,7 +220,6 @@ graph export ///
 ********************************************************************************
 * 2 : Histograms 
 ********************************************************************************
-
 
 ********************************************************************************
 * 2.1 : Benefit unit by year, 

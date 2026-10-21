@@ -1,14 +1,29 @@
+
+/*******************************************************************************
+* PROJECT:              SimPaths EU
+* DO-FILE NAME:         04_07_plot_disposable_income.do
+* DESCRIPTION:          Plots observed and simulated disposable income.
+* COUNTRY:              ES
+* DATA:                 EU-SILC validation sample and SimPaths outputs
+* AUTHOR:               Ashley Burdett
+* LAST UPDATE:          21 October 2026
 ********************************************************************************
-* PROJECT:  		SimPath EU
-* SECTION:			Validation
-* OBJECT: 			Disposable income
-* AUTHORS:			Ashley Burdett 
-* LAST UPDATE:		April 2026
-* COUNTRY: 			PL
-********************************************************************************
-* NOTES: 			This do file plots simulated and SILC disposable income, 
-* 					per benefit unit. Individual level data plotted. 
-********************************************************************************
+* NOTES:
+*
+*   -----------------------------------------------------------------------
+*    What this file does
+*   -----------------------------------------------------------------------
+*   This do-file generates validation plots comparing disposable income
+*   in EU-SILC and SimPaths.
+*
+*   The plots compare observed EU-SILC outcomes with the mean simulated
+*   outcomes across multiple simulation runs.
+*
+*   Disposable income is expressed in annual amounts and calculated
+*   at the benefit-unit level. 
+*
+*******************************************************************************/
+
 
 ********************************************************************************
 * 1 : Mean values over time

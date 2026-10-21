@@ -1,13 +1,44 @@
-********************************************************************************
-* PROJECT:  		SimPaths EU 
-* SECTION:			Validation - longitudinal SILC
-* OBJECT: 			Simulation output pre-processing
-* AUTHORS:			Patryk Bronka, Ashley Burdett 
-* LAST UPDATE:		09/2026 (AB)
-* COUNTRY: 			ES
 
-* NOTES: 			
+/*******************************************************************************
+* PROJECT:              SimPaths EU
+* DO-FILE NAME:         01_prepare_simulated_data.do
+* DESCRIPTION:          Imports and prepares SimPaths simulation output data.
+* COUNTRY:              ES
+* DATA:                 SimPaths multi-run simulation outputs
+* AUTHORS:              Patryk Bronka, Ashley Burdett
+* LAST UPDATE:          21 October 2026
 ********************************************************************************
+* NOTES:
+*
+*   -----------------------------------------------------------------------
+*    What this file does
+*   -----------------------------------------------------------------------
+*   This do-file imports and prepares the SimPaths simulation outputs
+*   required for validation. It retains the relevant variables from the
+*   household, benefit-unit, and person files and restricts observations
+*   to the specified maximum simulation year.
+*
+*   The person and benefit-unit datasets are merged using the run,
+*   time, and benefit-unit identifiers. The resulting dataset is saved
+*   for use by the subsequent validation routines.
+*
+*   -----------------------------------------------------------------------
+*    Required input data
+*   -----------------------------------------------------------------------
+*   The following multi-run simulation output files are required:
+*
+*   - Household.csv
+*   - BenefitUnit.csv
+*   - Person.csv
+*
+*   These files must be located in the directory specified by
+*   dir_simulated_data, defined in the master file for each alignment
+*   scenario:
+*
+*       dir_sim_output/<alignment_scenario>/csv/
+*
+*
+*******************************************************************************/
 
 * Import required variables from household file
 import delimited "$dir_simulated_data/Household.csv", case(preserve) clear 
