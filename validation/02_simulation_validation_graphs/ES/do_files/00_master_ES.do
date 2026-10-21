@@ -46,7 +46,9 @@
 *   -----------------------------------------------------------------------
 *    User configuration
 *   -----------------------------------------------------------------------
-*   Before running this master file, the user must:
+*   Before running this master file, review the configuration settings
+*   below. Parameters requiring user input are marked >> EDIT << in
+*   the code to make them easy to locate.
 *
 *   1. Set dir_ind to the local SimPaths EU project directory.
 *
