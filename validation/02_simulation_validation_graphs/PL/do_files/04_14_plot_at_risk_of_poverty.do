@@ -34,10 +34,10 @@ if "$trim_outliers" == "true" {
 }
 
 qui sum year
-local min_year = 2011
-if "$min_sim_year" != "" local min_year = $min_sim_year
-local max_year = r(max)
-if "$max_sim_year" != "" local max_year = $max_sim_year
+local min_year = 2011
+if "$min_sim_year" != "" local min_year = $min_sim_year
+local max_year = r(max)
+if "$max_sim_year" != "" local max_year = $max_sim_year
 
 
 gen poverty_line = .
@@ -73,7 +73,7 @@ bys run year: egen equivincome_median = median(sim_yDispEquivYear)
 
 gen poverty_line = 0.6*equivincome_median
 
-gen arop_sim = (sim_yDispEquivYear < poverty_line)
+gen arop_sim = (sim_yDispEquivYear < poverty_line) if !missing(sim_yDispEquivYear, poverty_line)
 
 collapse (mean) arop_sim, by(run year)
 
@@ -133,10 +133,10 @@ if "$trim_outliers" == "true" {
 }
 
 qui sum year
-local min_year = 2011
-if "$min_sim_year" != "" local min_year = $min_sim_year
-local max_year = r(max)
-if "$max_sim_year" != "" local max_year = $max_sim_year
+local min_year = 2011
+if "$min_sim_year" != "" local min_year = $min_sim_year
+local max_year = r(max)
+if "$max_sim_year" != "" local max_year = $max_sim_year
 
 
 gen poverty_line = .
