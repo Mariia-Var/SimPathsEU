@@ -160,7 +160,7 @@ global dir_work "$path/data"
 global dir_data "$path/data"
 
 * Folder containing the UID dataset - ${country}_pooled_ipop.dta  >> EDIT <<
-global dir_init_pop_data "$dir_ind/input_processing/initial_populations/${country}/data"
+global dir_init_pop_data "..."
 
 /*
 AB
