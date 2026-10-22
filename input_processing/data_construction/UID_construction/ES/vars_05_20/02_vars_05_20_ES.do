@@ -1,7 +1,7 @@
 /*******************************************************************************
 * PROJECT:              SimPaths EU
 * DO-FILE NAME:         vars_05_20_ES.do
-* DESCRIPTION:          Collects varaibles from 2005-2020 panel to merge in 
+* DESCRIPTION:          Collects variables from 2005-2020 panel to merge in 
 ********************************************************************************
 * COUNTRY:              ES 
 * DATA:         	    EU-SILC panel based on the EU-SILC longitudinal datasets 

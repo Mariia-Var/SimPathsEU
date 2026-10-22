@@ -155,7 +155,6 @@ ssc install filelist
 ssc install gologit2, replace
 
 
-
 /*******************************************************************************
 * DEFINE DIRECTORIES
 *******************************************************************************/
@@ -172,7 +171,7 @@ Hardcoded per machine - edit this to your own local Box path before running.
 Everything else in this file is relative to this one path.
 */
 
-global dir_ind "/Users/ashleyburdett/Library/CloudStorage/Box-Box"
+global dir_ind "..."
 
 
 ** Output directories
@@ -185,8 +184,7 @@ folder containing this do-file is contained.
 This is the main folder that will contain the relevant UID construction data and
 log files.
 */
-
-global dir_work "$dir_ind/CeMPA shared area/_SimPaths/_SimPathsEU/input_processing/initial_populations/ES"
+global dir_work "..."
 
 * Directory containing do-files
 global dir_do "$dir_work/do_files"
@@ -205,11 +203,11 @@ global dir_graphs "$dir_work/graphs"
 
 * Directory containing 2005-2023 EU-SILC panel data
 * >>> EDIT <<<
-global dir_eusilc "$dir_ind/CeMPA shared area/_SimPaths/_SimPathsEU/input_processing/SILC_panel/data/EU-SILC"
+global dir_eusilc "..."
 
 * Directory containing 2005-2020 EU-SILC panel data
 * >>> EDIT <<<
-global dir_eusilc_2020 "$dir_ind/CeMPA shared area/_SimPaths/_SimPathsEU/input_processing/SILC_panel/2005_2020_panel/data"
+global dir_eusilc_2020 "..."
 
 
 /*******************************************************************************
@@ -243,5 +241,6 @@ do "$dir_do/04_reweight_${country}.do"
 
 do "$dir_do/05_drop_hholds_and_slice_${country}.do"
 
+* Check
 do "$dir_do/06_check_yearly_data_${country}.do"
 
