@@ -1,4 +1,3 @@
-
 /*******************************************************************************
 * PROJECT:              SimPaths EU
 * DO-FILE NAME:         04_10_1_plot_hours_worked_discrete.do

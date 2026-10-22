@@ -1,15 +1,28 @@
+/*******************************************************************************
+* PROJECT:              SimPaths EU
+* DO-FILE NAME:         04_05_plot_capital_income.do
+* DESCRIPTION:          Plots observed and simulated capital income.
+* COUNTRY:              PL
+* DATA:                 EU-SILC validation sample and SimPaths outputs
+* AUTHOR:               Ashley Burdett
+* LAST UPDATE:          April 2026
 ********************************************************************************
-* PROJECT:  		SimPaths EU 
-* SECTION:			Validation
-* OBJECT: 			Capital income
-* AUTHORS:			Ashley Burdett 
-* LAST UPDATE:		April 2026 (AB)
-* COUNTRY: 			PL 
-********************************************************************************
-* NOTES: 			This do file plots simulated and SILC capital income, 
-*					per benefit unit
-
-********************************************************************************
+* NOTES:
+*
+*   -----------------------------------------------------------------------
+*    What this file does
+*   -----------------------------------------------------------------------
+*   This do-file generates validation plots comparing capital income
+*   in EU-SILC and SimPaths.
+*
+*   The plots compare observed EU-SILC outcomes with the mean simulated
+*   outcomes across multiple simulation runs.
+*
+*   Capital income is expressed in annual amounts and aggregated at
+*   the benefit-unit level.
+*
+*
+*******************************************************************************/
 
 ********************************************************************************
 * 1 : Time series
@@ -258,10 +271,14 @@ if "$trim_outliers" == "true" {
 append using "$dir_data/temp_valid_stats.dta"
 
 qui sum year
-local min_year = 2011
-if "$min_sim_year" != "" local min_year = $min_sim_year
-local max_year = 2023
-if "$max_sim_year" != "" local max_year = $max_sim_year
+local min_year = 2011
+
+if "$min_sim_year" != "" local min_year = $min_sim_year
+
+local max_year = 2023
+
+if "$max_sim_year" != "" local max_year = $max_sim_year
+
 
 
 forval year = `min_year'/`max_year' {
@@ -324,7 +341,8 @@ save "$dir_data/temp_valid_stats.dta", replace
 use run year idBu demAge sim_yCapitalBuLevelYear using ///
 	"$dir_data/simulation_sample.dta", clear
 
-keep if demAge >= 16
+keep if demAge >= 16
+
 	
 * Keep one observatioon per benefit unit
 bysort run year idBu: gen first_person = (_n == 1)
@@ -346,10 +364,14 @@ drop if sim_yCapitalBuLevelYear == 0
 append using "$dir_data/temp_valid_stats.dta"
 
 qui sum year
-local min_year = 2011
-if "$min_sim_year" != "" local min_year = $min_sim_year
-local max_year = 2023
-if "$max_sim_year" != "" local max_year = $max_sim_year
+local min_year = 2011
+
+if "$min_sim_year" != "" local min_year = $min_sim_year
+
+local max_year = 2023
+
+if "$max_sim_year" != "" local max_year = $max_sim_year
+
 
 
 forval year = `min_year'/`max_year' {

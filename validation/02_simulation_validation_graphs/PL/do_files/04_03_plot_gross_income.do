@@ -1,13 +1,27 @@
+/*******************************************************************************
+* PROJECT:              SimPaths EU
+* DO-FILE NAME:         04_03_plot_gross_income.do
+* DESCRIPTION:          Plots observed and simulated gross income.
+* COUNTRY:              ES
+* DATA:                 EU-SILC validation sample and SimPaths outputs
+* AUTHOR:               Ashley Burdett
+* LAST UPDATE:          April 2026
 ********************************************************************************
-* PROJECT:  		SimPaths EU
-* SECTION:			Validation
-* OBJECT: 			Gross income
-* AUTHORS:			Ashley Burdett 
-* LAST UPDATE:		April 2026
-* COUNTRY: 			PL
-********************************************************************************
-* NOTES: 			
-********************************************************************************
+* NOTES:
+*
+*   -----------------------------------------------------------------------
+*    What this file does
+*   -----------------------------------------------------------------------
+*   This do-file generates validation plots comparing gross income
+*   in EU-SILC and SimPaths.
+*
+*   The plots compare observed EU-SILC outcomes with the mean simulated
+*   outcomes across multiple simulation runs.
+*
+*   Income measures are expressed in annual amounts at the benefit unit and 
+* 	individula levels. 
+*
+*******************************************************************************/
 
 ********************************************************************************
 * 1 : Mean values over time

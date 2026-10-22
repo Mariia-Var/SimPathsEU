@@ -1,4 +1,3 @@
-
 /*******************************************************************************
 * PROJECT:              SimPaths EU
 * DO-FILE NAME:         04_04_plot_gross_labour_income.do

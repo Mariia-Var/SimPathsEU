@@ -2,7 +2,7 @@
 * PROJECT:              SimPaths EU
 * DO-FILE NAME:         04_02_plot_education_level.do
 * DESCRIPTION:          Plots observed and simulated educational attainment.
-* COUNTRY:              PL
+* COUNTRY:              ES
 * DATA:                 EU-SILC validation sample and SimPaths outputs
 * AUTHOR:               Ashley Burdett
 * LAST UPDATE:          21 October 2026

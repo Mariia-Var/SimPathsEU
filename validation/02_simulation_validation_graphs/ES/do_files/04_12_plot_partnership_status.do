@@ -1,4 +1,3 @@
-
 /*******************************************************************************
 * PROJECT:              SimPaths EU
 * DO-FILE NAME:         04_12_plot_partnership_status.do

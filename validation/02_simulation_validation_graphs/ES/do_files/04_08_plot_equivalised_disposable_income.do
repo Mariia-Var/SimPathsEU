@@ -1,4 +1,3 @@
-
 /*******************************************************************************
 * PROJECT:              SimPaths EU
 * DO-FILE NAME:         04_08_plot_equivalised_disposable_income.do

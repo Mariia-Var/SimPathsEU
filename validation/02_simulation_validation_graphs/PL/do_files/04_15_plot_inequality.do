@@ -1,13 +1,33 @@
+/*******************************************************************************
+* PROJECT:              SimPaths EU
+* DO-FILE NAME:         04_15_plot_inequality.do
+* DESCRIPTION:          Plots income inequality and net transfers.
+* COUNTRY:              PL
+* DATA:                 EU-SILC validation sample and SimPaths outputs
+* AUTHOR:               Ashley Burdett
+* LAST UPDATE:          Spet 2025
 ********************************************************************************
-* PROJECT:  		SimPath EU
-* SECTION:			Validation
-* OBJECT: 			Inequality
-* AUTHORS:			Ashley Burdett 
-* LAST UPDATE:		9/2025 (AB)
-* COUNTRY: 			PL
-********************************************************************************
-* NOTES: 			Equivalized disposable income used to created ratios 
-********************************************************************************
+* NOTES:
+*
+*   -----------------------------------------------------------------------
+*    What this file does
+*   -----------------------------------------------------------------------
+*   This do-file generates validation plots comparing income inequality
+*   and net transfers in EU-SILC and SimPaths.
+*
+*   Income inequality is measured using equivalised disposable benefit-unit 
+* 	income, assigned to individuals aged 18-65. The plots compare annual 
+* 	P90/P50 and P90/P10 income ratios and the Gini coefficient.
+*
+*   Observed EU-SILC inequality measures are calculated using survey weights and 
+* 	compared with the mean simulated outcomes across multiple simulation runs.
+*
+*   Additional plots compare average net transfers across deciles of gross 
+* 	on-benefit income at the benefit-unit level. Comparisons are produced for 
+* 	all benefit units and separately according to whether the oldest 
+* 	benefit-unit member is aged 65 or younger, or older than 65.
+*
+*******************************************************************************/
 
 //ssc install ineqdeco
 

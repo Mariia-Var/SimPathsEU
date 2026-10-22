@@ -1,14 +1,27 @@
+/*******************************************************************************
+* PROJECT:              SimPaths EU
+* DO-FILE NAME:         04_09_plot_hourly_wages.do
+* DESCRIPTION:          Plots observed and simulated hourly wages.
+* COUNTRY:              PL
+* DATA:                 EU-SILC validation sample and SimPaths outputs
+* AUTHOR:               Ashley Burdett
+* LAST UPDATE:          April 2026
 ********************************************************************************
-* PROJECT:  		SimPaths EU
-* SECTION:			Validation
-* OBJECT: 			Hourly wages
-* AUTHORS:			Ashley Burdett 
-* LAST UPDATE:		April 2026
-* COUNTRY: 			EU
-********************************************************************************
-* NOTES: 			This master do file organises do files used for validating 
-* 					SimPaths model using SILC data. 
-********************************************************************************
+* NOTES:
+*
+*   -----------------------------------------------------------------------
+*    What this file does
+*   -----------------------------------------------------------------------
+*   This do-file generates validation plots comparing hourly wages
+*   in EU-SILC and SimPaths.
+*
+*   The plots compare observed EU-SILC outcomes with the mean simulated
+*   outcomes across multiple simulation runs.
+*
+*   Hourly wages are measured at the individual level. Comparisons
+*   are based on the relevant population of employed individuals.
+*
+*******************************************************************************/
 
 ********************************************************************************
 * 1 : Mean values over time

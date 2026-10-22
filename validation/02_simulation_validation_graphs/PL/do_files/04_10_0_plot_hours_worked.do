@@ -1,14 +1,31 @@
+/*******************************************************************************
+* PROJECT:              SimPaths EU
+* DO-FILE NAME:         04_10_0_plot_hours_worked.do
+* DESCRIPTION:          Plots observed and simulated weekly hours worked.
+* COUNTRY:              PL
+* DATA:                 EU-SILC validation sample and SimPaths outputs
+* AUTHOR:               Ashley Burdett
+* LAST UPDATE:         	April 2026
 ********************************************************************************
-* PROJECT:  		SimPaths EU
-* SECTION:			Validation
-* OBJECT: 			Hours worked per week
-* AUTHORS:			Ashley Burdett 
-* LAST UPDATE:		Jan 2026
-* COUNTRY: 			PL
-********************************************************************************
-* NOTES: 			Current implementation explores the impact how the 
-* 					heterogeneity of the upper most category is instructed.
-********************************************************************************
+* NOTES:
+*
+*   -----------------------------------------------------------------------
+*    What this file does
+*   -----------------------------------------------------------------------
+*   This do-file generates validation plots comparing weekly hours
+*   worked in EU-SILC and SimPaths.
+*
+*   The plots compare observed EU-SILC outcomes with the mean simulated
+*   outcomes across multiple simulation runs.
+*
+*   Weekly hours worked are examined using both continuous measures
+*   and discrete labour supply categories. The categories are defined
+*   to correspond to the country-specific hours options in SimPaths.
+*
+*   The validation also considers the distribution of hours within
+*   the highest labour supply category.
+*
+*******************************************************************************/
 
 set seed  12345
 

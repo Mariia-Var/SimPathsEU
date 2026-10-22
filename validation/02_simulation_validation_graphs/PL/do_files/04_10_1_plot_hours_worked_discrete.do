@@ -1,13 +1,27 @@
 /*******************************************************************************
-* PROJECT:  		SimPaths EU 
-* SECTION:			Validation
-* OBJECT: 			Hours worked (discrete)
-* AUTHORS:			Ashley Burdett 
-* LAST UPDATE:		Jan 2026
-* COUNTRY: 			EU 
+* PROJECT:              SimPaths EU
+* DO-FILE NAME:         04_10_1_plot_hours_worked_discrete.do
+* DESCRIPTION:          Plots observed and simulated discrete labour supply.
+* COUNTRY:              PL
+* DATA:                 EU-SILC validation sample and SimPaths outputs
+* AUTHOR:               Ashley Burdett
+* LAST UPDATE:          Jan 2026
 ********************************************************************************
-* NOTES: 			Need to update to acocunt for additional labour supply 
-* 					categories 
+* NOTES:
+*
+*   -----------------------------------------------------------------------
+*    What this file does
+*   -----------------------------------------------------------------------
+*   This do-file generates validation plots comparing the distribution
+*   of weekly hours worked across discrete labour supply categories
+*   in EU-SILC and SimPaths.
+*
+*   The plots compare observed EU-SILC outcomes with the mean simulated
+*   outcomes across multiple simulation runs.
+*
+*   Observed weekly hours are grouped into categories corresponding
+*   to the country-specific labour supply options in SimPaths.
+*
 *******************************************************************************/
 
 ********************************************************************************

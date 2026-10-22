@@ -1,15 +1,24 @@
+/*******************************************************************************
+* PROJECT:              SimPaths EU
+* DO-FILE NAME:         04_02_plot_education_level.do
+* DESCRIPTION:          Plots observed and simulated educational attainment.
+* COUNTRY:              PL
+* DATA:                 EU-SILC validation sample and SimPaths outputs
+* AUTHOR:               Ashley Burdett
+* LAST UPDATE:          Aprilr 2026
 ********************************************************************************
-* PROJECT:  		SimPaths EU
-* SECTION:			Validation
-* OBJECT: 			Education
-* AUTHORS:			Ashley Burdett 
-* LAST UPDATE:		April 2026 (AB)
-* COUNTRY: 			PL
-********************************************************************************
-* NOTES: 			This do file plots simulated and UKHLS education. 
-* 					Unable to look at transitions because use X-sectional 
-* 					SILC data. 
-********************************************************************************
+* NOTES:
+*
+*   -----------------------------------------------------------------------
+*    What this file does
+*   -----------------------------------------------------------------------
+*   This do-file generates validation plots comparing educational
+*   attainment in EU-SILC and SimPaths.
+*
+*   Educational attainment is classified into four levels: low,
+*   medium, high, and still in initial education spell. 
+*
+*******************************************************************************/
 
 ********************************************************************************
 * 0 : Programmes

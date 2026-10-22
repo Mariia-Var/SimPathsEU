@@ -1,12 +1,20 @@
 /*******************************************************************************
-* PROJECT:  		SimPaths UEU
-* SECTION:			Validation
-* OBJECT: 			Disability 
-* AUTHORS:			Ashley Burdett 
-* LAST UPDATE:		Jan 2026
-* COUNTRY: 			PL 
+* PROJECT:              SimPaths EU
+* DO-FILE NAME:         04_17_plot_disability.do
+* DESCRIPTION:          Plots observed and simulated disability outcomes.
+* COUNTRY:              PL
+* DATA:                 EU-SILC validation sample and SimPaths outputs
+* AUTHOR:               Ashley Burdett
+* LAST UPDATE:          Jan 2026
 ********************************************************************************
-* NOTES: 			
+* NOTES:
+*
+*   -----------------------------------------------------------------------
+*    What this file does
+*   -----------------------------------------------------------------------
+*   This do-file generates validation plots comparing disability outcomes in 
+* 	EU-SILC and SimPaths.
+*
 *******************************************************************************/
 
 ********************************************************************************

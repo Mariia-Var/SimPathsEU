@@ -1,14 +1,29 @@
+/*******************************************************************************
+* PROJECT:              SimPaths EU
+* DO-FILE NAME:         04_04_plot_gross_labour_income.do
+* DESCRIPTION:          Plots observed and simulated gross labour income.
+* COUNTRY:             	PL
+* DATA:                 EU-SILC validation sample and SimPaths outputs
+* AUTHOR:               Ashley Burdett
+* LAST UPDATE:          April 2026
 ********************************************************************************
-* PROJECT:  		SimPaths EU
-* SECTION:			Validation
-* OBJECT: 			Gross labour income 
-* AUTHORS:			Ashley Burdett 
-* LAST UPDATE:		Feb 2026
-* COUNTRY: 			PL 
-********************************************************************************
-* NOTES: 			Plotted using individual level data 
-* 						=> multiple observations per ben unit.
-********************************************************************************
+* NOTES:
+*
+*   -----------------------------------------------------------------------
+*    What this file does
+*   -----------------------------------------------------------------------
+*   This do-file generates validation plots comparing gross labour
+*   income in EU-SILC and SimPaths.
+*
+*   The plots compare observed EU-SILC outcomes with the mean simulated
+*   outcomes across multiple simulation runs.
+*
+*   Gross labour income is expressed in annual amounts. Comparisons
+*   are based on individual-level and benefit unit level observations. 
+* 	Underlying variable at the benefit unit level. 
+*
+*******************************************************************************/
+
 
 ********************************************************************************
 * 1 : Mean labour income

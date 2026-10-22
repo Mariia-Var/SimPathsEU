@@ -1,12 +1,34 @@
 /*******************************************************************************
-* PROJECT:  		SimPaths EU
-* SECTION:			Validation
-* OBJECT: 			Health
-* AUTHORS:			Ashley Burdett 
-* LAST UPDATE:		Jan 2026
-* COUNTRY: 			PL 
+* PROJECT:              SimPaths EU
+* DO-FILE NAME:         04_13_plot_health.do
+* DESCRIPTION:          Plots observed and simulated self-rated health.
+* COUNTRY:              PL
+* DATA:                 EU-SILC validation sample and SimPaths outputs
+* AUTHOR:               Ashley Burdett
+* LAST UPDATE:         	Jan 2026
 ********************************************************************************
-* NOTES: 			
+* NOTES:
+*
+*   -----------------------------------------------------------------------
+*    What this file does
+*   -----------------------------------------------------------------------
+*   This do-file generates validation plots comparing self-rated health
+*   in EU-SILC and SimPaths.
+*
+*   Self-rated health is measured on a five-point scale, ranging from
+*   poor (1) to excellent (5).
+*
+*   The plots compare annual mean self-rated health scores for
+*   individuals aged 16-65, both overall and separately by gender.
+*   Additional plots examine mean scores by age group and gender.
+*
+*   Observed EU-SILC means are weighted using survey weights, while
+*   simulated means are calculated across multiple simulation runs.
+*
+*   Histograms compare the distributions of self-rated health for
+*   individuals aged 16-65, overall and by gender, using a single
+*   simulation run.
+*
 *******************************************************************************/
 
 ********************************************************************************
@@ -315,7 +337,7 @@ foreach vble in "health_f" "health_m" {
 
 	twoway (rarea `vble'_8_sim_high `vble'_8_sim_low year, sort ///
 		color(red%20) legend(label(1 "SimPaths") position(6) rows(1))) ///
-	(line `vble'_7_valid year, sort color(red) legend(label(2 "SILC"))), ///
+	(line `vble'_8_valid year, sort color(red) legend(label(2 "SILC"))), ///
 		subtitle("Age 80-100") ///
 		name(`vble'_8, replace) ///
 		xtitle("Year", size(small)) ///

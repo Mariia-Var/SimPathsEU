@@ -1,14 +1,27 @@
+/*******************************************************************************
+* PROJECT:              SimPaths EU
+* DO-FILE NAME:         04_08_plot_equivalised_disposable_income.do
+* DESCRIPTION:          Plots observed and simulated equivalised disposable 
+* 						income.
+* COUNTRY:              PL
+* DATA:                 EU-SILC validation sample and SimPaths outputs
+* AUTHOR:               Ashley Burdett
+* LAST UPDATE:          April 2026
 ********************************************************************************
-* PROJECT:  		SimPaths EU
-* SECTION:			Validation
-* OBJECT: 			Equivalised disposable income
-* AUTHORS:			Ashley Burdett 
-* LAST UPDATE:		April 2026
-* COUNTRY: 			PL
-********************************************************************************
-* NOTES: 			This do file plots simulated and SILC equivalised 
-* 					disposable income, per benefit unit
-********************************************************************************
+* NOTES:
+*
+*   -----------------------------------------------------------------------
+*    What this file does
+*   -----------------------------------------------------------------------
+*   This do-file generates validation plots comparing disposable income
+*   in EU-SILC and SimPaths.
+*
+*   The plots compare observed EU-SILC outcomes with the mean simulated
+*   outcomes across multiple simulation runs.
+*
+*   Equivalised disposable income is expressed in annual amounts and calculated
+*   at the benefit-unit level. 
+*******************************************************************************/
 
 ********************************************************************************
 * 1 : Mean values over time, benefit unit 

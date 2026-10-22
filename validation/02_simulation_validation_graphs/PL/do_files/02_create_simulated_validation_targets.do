@@ -1,18 +1,34 @@
+/*******************************************************************************
+* PROJECT:              SimPaths EU
+* DO-FILE NAME:         02_create_simulated_validation_targets.do
+* DESCRIPTION:          Constructs variables for simulation validation.
+* COUNTRY:              PL
+* DATA:                 SimPaths multi-run simulation outputs
+* AUTHOR:               Ashley Burdett
+* LAST UPDATE:         	Jan 2026
 ********************************************************************************
-* PROJECT:  		SimPaths EU 
-* SECTION:			Validation
-* OBJECT: 			Validation targets
-* AUTHORS:			Ashley Burdett 
-* LAST UPDATE:		11/2025 (AB)
-* COUNTRY: 			PL 
-* DESCRIPTION:      This file creates variables from the simulated data
-* 					that are used to generate in the comparison plots. 
-********************************************************************************
-* NOTES: 			Income amounts are converted from IHS to levels and from 
-* 					monthly to annual. 
-* 					Two datasets are saved, one containing all observations 
-* 					(..._full) and one containing only the adult population 
-* 					(18-65 inc).
+* NOTES:
+*
+*   -----------------------------------------------------------------------
+*    What this file does
+*   -----------------------------------------------------------------------
+*   This do-file prepares the simulated variables required for validation
+*   plots, using the merged person and benefit-unit simulation data.
+*
+*   It constructs variables covering demographics, partnership status,
+*   children, education, health, labour market outcomes, and income.
+*   Categorical simulation outputs are recoded into variables suitable
+*   for comparison with EU-SILC validation targets.
+*
+*   Personal income variables are converted from the inverse hyperbolic
+*   sine (IHS) transformation to levels and from monthly to annual
+*   amounts. Benefit-unit income variables are already stored in levels
+*   and are annualised where necessary.
+*
+*   The sample is restricted to the specified validation years, but
+*   individuals of all ages are retained. Age restrictions are applied
+*   separately by the individual plotting do-files.
+*
 *******************************************************************************/
 
 * Generate/Tidy required variables

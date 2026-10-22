@@ -1,14 +1,26 @@
 /*******************************************************************************
-* PROJECT:  		SimPaths EU 
-* SECTION:			Validation
-* OBJECT: 			Economic Activity Status plots
-* AUTHORS:			Ashley Burdett 
-* LAST UPDATE:		4/26
-* COUNTRY: 			PL 
-* DESCRIPTION: 		This do file plots validation graphs for economic activity 
-* 					status (4 cat). 
-******************************************************************************** 
-* NOTES: 			
+* PROJECT:              SimPaths EU
+* DO-FILE NAME:         04_01_plot_activity_status.do
+* DESCRIPTION:          Plots observed and simulated economic activity status.
+* COUNTRY:              PL
+* DATA:                 EU-SILC validation sample and SimPaths outputs
+* AUTHOR:               Ashley Burdett
+* LAST UPDATE:          April 2026
+********************************************************************************
+* NOTES:
+*
+*   -----------------------------------------------------------------------
+*    What this file does
+*   -----------------------------------------------------------------------
+*   This do-file generates validation plots comparing the distribution
+*   of economic activity status in EU-SILC and SimPaths.
+*
+*   Economic activity is classified into four categories: employed,
+*   student, not employed, and retired.
+*
+*   The plots compare observed EU-SILC outcomes with the mean simulated
+*   outcomes across multiple simulation runs.
+*
 *******************************************************************************/
 
 clear all 

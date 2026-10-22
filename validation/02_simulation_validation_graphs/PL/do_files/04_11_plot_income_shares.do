@@ -1,15 +1,31 @@
 /*******************************************************************************
-* PROJECT:  		SimPaths EU
-* SECTION:			Validation
-* OBJECT: 			Income shares
-* AUTHORS:			Patryk Bronka, Ashley Burdett 
-* LAST UPDATE:		Jan 2026 
-* COUNTRY: 			PL 
+* PROJECT:              SimPaths EU
+* DO-FILE NAME:         04_11_plot_income_shares.do
+* DESCRIPTION:          Plots observed and simulated income levels and shares.
+* COUNTRY:              PL
+* DATA:                 EU-SILC validation sample and SimPaths outputs
+* AUTHORS:              Patryk Bronka, Ashley Burdett
+* LAST UPDATE:          jan 2026
 ********************************************************************************
-* NOTES: 			This do file plots simulated and observed income shares and 
-* 					incomes by deciles of gross income
-* 					Altered pension age to 65 
-
+* NOTES:
+*
+*   -----------------------------------------------------------------------
+*    What this file does
+*   -----------------------------------------------------------------------
+*   This do-file generates validation plots comparing the levels and
+*   composition of gross non-benefit income in EU-SILC and SimPaths.
+*
+*   Income is measured at the benefit-unit level and decomposed into
+*   employment, capital, and private pension income. Benefit income
+*   is excluded.
+*
+*   The plots examine average income amounts and income component
+*   shares across deciles of gross non-benefit income.
+*
+*   Comparisons are produced for all benefit units and separately
+*   according to whether the oldest benefit-unit member is aged
+*   65 or younger, or older than 65.
+*
 *******************************************************************************/
 
 ** SimPaths output 

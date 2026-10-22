@@ -1,13 +1,36 @@
 /*******************************************************************************
-* PROJECT:  		SimPaths EU
-* SECTION:			Validation
-* OBJECT: 			Alignment targets (refactored variable names)
-* AUTHORS:			Ashley Burdett
-* LAST UPDATE:		05/2026 (refactor)
-* COUNTRY: 			Poland
+* PROJECT:              SimPaths EU
+* DO-FILE NAME:         04_18_plot_alignment_targets.do
+* DESCRIPTION:          Plots simulated alignment targets and adjustments.
+* COUNTRY:              PL
+* DATA:                 SimPaths alignment statistics outputs
+* AUTHOR:               Mariia Vartuzova
+* LAST UPDATE:          May 2026
 ********************************************************************************
-* NOTES: 			Refactored to use the new SimPaths EU variable names from
-*					AlignmentAdjustmentFactors1.csv (align* prefix).
+* NOTES:
+*
+*   -----------------------------------------------------------------------
+*    What this file does
+*   -----------------------------------------------------------------------
+*   This do-file generates validation plots examining the alignment
+*   statistics produced by SimPaths.
+*
+*   The plots are used to assess the alignment of simulated outcomes
+*   with the targets used by the model.
+*
+*   The file uses the updated SimPaths EU variable naming convention,
+*   with alignment variables identified by the align* prefix.
+*
+*   -----------------------------------------------------------------------
+*    Required input data
+*   -----------------------------------------------------------------------
+*   - AlignmentStatistics.csv
+*
+*   If this file is unavailable, the do-file falls back to the
+*   legacy AlignmentAdjustmentFactors1.csv output.
+*
+*   This do-file is called by 00_master_ES.do.
+*
 *******************************************************************************/
 
 * Ensure output folder exists

@@ -187,7 +187,7 @@ global path    "${dir_ind}/ES_validation"
 
 */
 
-* Folder containing plotting do-files 
+* Folder containing do-files 
 global dir_do_files "$path/do_files"  
 
 * Folder containing output data 
@@ -220,10 +220,10 @@ global use_assert "0"
 * Trim outliers
 global trim_outliers true
 
-* Min age of individuals included in plots
+* Min working age for plots
 global min_age 18
 
-* Max age of individuals included in plots
+* Max working age for plots
 global max_age 65
 
 * Range of calendar years included in the validation sample
@@ -237,30 +237,29 @@ global max_sim_year ${max_year}
 global age_become_responsible 18
 
 * Set labour supply categories
-* Females  >> EDIT <<
+* Females  
 global ls_cat_f "ZERO TWENTY THIRTY THIRTY_SEVEN FORTY FIFTY"
 global ls_cat_labour_f "TWENTY THIRTY THIRTY_SEVEN FORTY FIFTY"
 
-* Males  >> EDIT <<
+* Males  
 global ls_cat_m "ZERO TWENTY THIRTY_SEVEN FORTY FIFTY SIXTY"
 global ls_cat_labour_m "TWENTY THIRTY_SEVEN FORTY FIFTY SIXTY"
 
 * Weekly hours bands used for the SILC hours categories.
 * These must match the gender-specific SimPaths labour supply categories.
-* Females  >> EDIT <<
+* Females  
 global hrs_cat1_lb_f 6
 global hrs_cat1_ub_f 25
 global hrs_cat2_ub_f 34
 global hrs_cat3_ub_f 39
 global hrs_cat4_ub_f 40
 
-* Males  >> EDIT <<
+* Males 
 global hrs_cat1_lb_m 6
 global hrs_cat1_ub_m 34
 global hrs_cat2_ub_m 39
 global hrs_cat3_ub_m 40
 global hrs_cat4_ub_m 55
-
 
 * Number of simulation runs included in the multi-run outputs  >> EDIT <<
 global max_n_runs 5	
@@ -293,14 +292,14 @@ foreach align in $alignments {
 
 
 /*******************************************************************************
-* DEFINE ALIGNEMENT DIRECTORIES
+* DEFINE ALIGNMENT DIRECTORIES
 *******************************************************************************/
 
 	* Simulated data CSV files folder
 	global dir_simulated_data "${dir_sim_output}/`align'/csv"
 	display in y "Alignment scenario: `align'"
 
-	* Graphs folder
+	* Graph storage folder
 	global dir_output_files "$path/graphs/`align'"
 
 	
