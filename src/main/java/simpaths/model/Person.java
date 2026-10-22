@@ -128,6 +128,7 @@ public class Person implements EventListener, IDoubleSource, IIntSource, Weight,
     @Enumerated(EnumType.STRING) private Indicator eduExitSampleFlag;    // year left education
     @Transient private Boolean demGiveBirthFlag;
     @Transient private Boolean labToRetire;
+    @Transient private Boolean demLeaveHome;
     @Transient private Boolean eduLeaveSchoolFlag;
     @Transient private Boolean demBePartnerFlag;
     @Transient private Boolean demAlignPartnerProcess;
@@ -167,6 +168,9 @@ public class Person implements EventListener, IDoubleSource, IIntSource, Weight,
     @Transient private Integer demPartnerNYearL1; //Lag(1) of number of years in partnership
     private Double yNonBenPersGrossMonth; // asinh of personal non-benefit income per month
     @Transient private Double yNonBenPersGrossMonthL1; //Lag(1) of gross personal non-benefit income
+    @Transient private boolean parentsKnownL1; //Lag(1): a mother or father lived in the same household (Parents_known_L1)
+    @Transient private Double parentsYpnbL1; //Lag(1) asinh of co-resident parents' summed non-benefit income; null if none
+    @Transient private Ydses_c5 parentsYpnbQuintileL1; //Quintile of parentsYpnbL1, cut each year by SimPathsModel; null if none
     private Double yPersDispMonth; // real personal monthly disposable income (from initial population)
     private Double yMiscPersGrossMonth; // asinh of non-employment non-benefit income per month (capital and pension)
     private Double yCapitalPersMonth; // asinh of capital income per month
@@ -201,6 +205,9 @@ public class Person implements EventListener, IDoubleSource, IIntSource, Weight,
     @Transient private Double labWageRegressRandomCompoponentEmp;
     @Transient private Double labWageRegressRandomCompoponentNotEmp;
     @Transient private Map<Labour, Integer> personContinuousHoursLabourSupplyMap = new EnumMap<>(Labour.class);
+    @Transient private boolean evaluatingLabourChoice = false; // true while the benefit unit scores candidate hours brackets; see Parameters.useRepresentativeHoursInUtility
+    @Transient private Double labHrsDrawYear; // this year's position within the hours bracket, used when Parameters.redrawHoursEachYear is true
+    @Transient private String silcLhwSheet; // EU-SILC hours-distribution sheet (sample type and gender) fixed at the start of each labour-supply choice pass; see Parameters.USE_SILC_LHW_DISTRIBUTION_ES
 
     // local variables interact with regression models
     @Transient private Integer i_demYear;
@@ -405,6 +412,8 @@ public class Person implements EventListener, IDoubleSource, IIntSource, Weight,
         demPartnerStatusL1 = originalPerson.demPartnerStatusL1;
         yNonBenPersGrossMonth = originalPerson.getYpnbihs_dv();
         yNonBenPersGrossMonthL1 = originalPerson.yNonBenPersGrossMonthL1;
+        parentsKnownL1 = originalPerson.parentsKnownL1;
+        parentsYpnbL1 = originalPerson.parentsYpnbL1;
         yMiscPersGrossMonth = Objects.requireNonNullElse(originalPerson.yMiscPersGrossMonth, 0.0);
         yEmpPersGrossMonth = originalPerson.getYplgrs_dv();
         yEmpPersGrossMonthL1 = originalPerson.yEmpPersGrossMonthL1;
@@ -674,6 +683,7 @@ public class Person implements EventListener, IDoubleSource, IIntSource, Weight,
         Cohabitation,
         ConsiderMortality,
         ConsiderRetirement,
+        ConsiderLeavingHome,
         Fertility,
         GiveBirth,
         Health,
@@ -720,6 +730,10 @@ public class Person implements EventListener, IDoubleSource, IIntSource, Weight,
             case ConsiderRetirement -> {
                 considerRetirement();
                 retire();
+            }
+            case ConsiderLeavingHome -> {
+                considerLeavingHome();
+                leaveHome();
             }
             case Fertility -> {
                 fertility();
@@ -846,10 +860,8 @@ public class Person implements EventListener, IDoubleSource, IIntSource, Weight,
         demAge++;
         if (demAge == Parameters.AGE_TO_BECOME_RESPONSIBLE) {
             setupNewBenefitUnit(true);
-            considerLeavingHome();
-        } else if (demAge > Parameters.AGE_TO_BECOME_RESPONSIBLE && Indicator.True.equals(demAdultChildFlag)) {
-            considerLeavingHome();
         }
+        // Leaving the parental home is evaluated by Processes.ConsiderLeavingHome, scheduled after the education module
         updateAgeGroup();   //Update ageGroup as person ages
      }
 
@@ -869,74 +881,6 @@ public class Person implements EventListener, IDoubleSource, IIntSource, Weight,
         }
         if (flagDies || demAge > Parameters.maxAge)
             demExitSample = SampleExit.Death;
-    }
-
-    // This process should be applied to those at the age to become responsible / leave home OR above if they have the adultChildFlag set to True (i.e. people can move out, but not move back in).
-    /// Adult child: an adult who lives with parents who are not yet in need of care
-    /// (e.g. at least one parent is below pension age and not yet retired)
-    private void considerLeavingHome() {
-
-        //For those who are moving out, evaluate whether they should have stayed with parents and if yes, set the adultchildflag to true
-        double prob = Parameters.getRegLeaveHomeP1().getProbability(this, Person.DoublesVariables.class);
-        boolean toLeaveHome = (innovations.getDoubleDraw(21) < prob);
-
-        // Students are assumed not to leave the parental home
-        if (Les_c4.Student.equals(labC4) && !(eduLeftEduFlag == true)) {demAdultChildFlag = Indicator.True;}
-
-        if ((!Les_c4.Student.equals(labC4) || (eduLeftEduFlag == true)) && (demAge>=AGE_LEAVE_PARENTAL_HOME-1)) {
-
-            if (!toLeaveHome) { //If at the age to leave home but regression outcome is negative, person has adultchildflag set to true (although they still set up a new benefitUnit in the simulation, it's treated differently in the labour supply)
-                demAdultChildFlag = Indicator.True;
-            } else {
-                demAdultChildFlag = Indicator.False;
-                setupNewHousehold(); //If person leaves home, they set up a new household
-            }
-
-            if (demAdultChildFlag.equals(Indicator.True)){
-
-
-                // --- Parent existence checks
-                Person iDad = null;
-                Person iMom = null;
-
-                boolean dadExist = (getFatherImmutable() != null);
-                boolean momExist = (getMotherImmutable() != null);
-
-                if (dadExist) {iDad = getFatherImmutable();}
-                if (momExist) {iMom = getMotherImmutable();}
-
-                // Compute state pension ages for parents if they exist
-                int iDadPSA = -9;
-                int iMomPSA = -9;
-
-                if (dadExist) {
-                    iDadPSA = Parameters.getStatePensionAge(model.getYear(), iDad.getDgn());
-                }
-                if (momExist) {
-                    iMomPSA = Parameters.getStatePensionAge(model.getYear(), iMom.getDgn());
-                }
-
-                // Identify whether each parent is at/above pension age or already retired
-                boolean dadNeedsCare = false;
-                boolean momNeedsCare = false;
-
-                if (dadExist) {dadNeedsCare = (iDad.getDag() >= iDadPSA || iDad.getRetired() == 1.0);}
-                if (momExist) {momNeedsCare = (iMom.getDag() >= iMomPSA || iMom.getRetired() == 1.0);}
-
-                // Check if there is effectively no non-retired / sub-PSA parent available
-                boolean noParentAvailable =
-                        (!dadExist && !momExist) ||                       // no parents
-                        (!dadExist && momNeedsCare) ||                    // only mother exists and she’s at/above PSA or retired
-                        (!momExist && dadNeedsCare) ||                    // only father exists and he’s at/above PSA or retired
-                        (dadExist && momExist && dadNeedsCare && momNeedsCare); // both exist and both at/above PSA or retired
-
-                if (noParentAvailable) {
-                    demAdultChildFlag = Indicator.False; // If no eligible parent is available then the person is no longer considered an adult child and will not consider leaving parental home in future
-                }
-
-
-            }
-        }
     }
 
     public boolean considerRetirement() {
@@ -973,6 +917,59 @@ public class Person implements EventListener, IDoubleSource, IIntSource, Weight,
             healthDsblLongtermFlag = Indicator.False;
         }
     }
+
+
+    // This process should be applied to those at the age to become responsible / leave home OR above if they have the adultChildFlag set to True (i.e. people can move out, but not move back in).
+    /// Adult child: an adult who lives with parents and has not yet reached MAX_AGE_ADULT_CHILD
+    public boolean considerLeavingHome() {
+
+        demLeaveHome = false;
+
+        // Exclude those below the age of maturity, and adults who have already left the parental home
+        // Everyone is considered in the year they reach the age of maturity, because the flag carried over from childhood says nothing about living with parents as an adult.
+        if (demAge < AGE_TO_BECOME_RESPONSIBLE ||
+                (demAge > AGE_TO_BECOME_RESPONSIBLE && Indicator.False.equals(demAdultChildFlag))) {
+            return demLeaveHome;
+        }
+
+        // Students are assumed not to leave the parental home
+        if (Les_c4.Student.equals(labC4) && !Boolean.TRUE.equals(eduLeftEduFlag)) {
+            demAdultChildFlag = Indicator.True;
+            return demLeaveHome;
+        }
+
+        // Person above MAX_AGE_ADULT_CHILD stops being an A.C. and does not consider leaving parental home
+        if (demAge > MAX_AGE_ADULT_CHILD) {
+            demAdultChildFlag = Indicator.False;
+            return demLeaveHome;
+        }
+
+        // Adult, but not yet old enough to leave: remains an adult child and is reconsidered next year
+        if (demAge < MIN_AGE_LEAVE_PH) {
+            demAdultChildFlag = Indicator.True;
+            return demLeaveHome;
+        }
+
+        //For those who are eligible evaluate whether they should have stayed with parents and if yes, set the adultchildflag to true
+        double prob = Parameters.getRegLeaveHomeP1().getProbability(this, Person.DoublesVariables.class);
+        demLeaveHome = (innovations.getDoubleDraw(21) < prob);
+
+        if (!demLeaveHome) { //If at the age to leave home but regression outcome is negative, person has adultchildflag set to true
+            demAdultChildFlag = Indicator.True;
+        } else {
+            demAdultChildFlag = Indicator.False;
+        }
+
+        return demLeaveHome;
+    }
+
+
+    public void leaveHome() {
+        if (Boolean.TRUE.equals(demLeaveHome)) {
+            setupNewHousehold(); //If person leaves home, they set up a new household
+        }
+    }
+
 
     
     /*
@@ -1831,6 +1828,7 @@ public class Person implements EventListener, IDoubleSource, IIntSource, Weight,
         eduHighestC4L1 = eduHighestC4; //Update lag(1) of education level
         eduDedL1 = eduSpellFlag; //Update lag(1) of education level
         yNonBenPersGrossMonthL1 = getYpnbihs_dv(); //Update lag(1) of gross personal non-benefit income
+        updateParentsLaggedVariables();
         labHrsWorkEnumWeekL1 = getLabourSupplyWeekly(); // Lag(1) of labour supply
         yBenReceivedFlagL1 = yBenReceivedFlag; // Lag(1) of flag indicating if individual receives benefits
         labWageHrlyL1 = labWageHrly; // Lag(1) of potential hourly earnings
@@ -2104,16 +2102,12 @@ public class Person implements EventListener, IDoubleSource, IIntSource, Weight,
         Constant, 						// For the constant (intercept) term of the regression
         D_Children,
         D_Children_L1,
-        D_Children_2under,				// Indicator (dummy variables for presence of children of certain ages in the benefitUnit)
-        D_Children_3_6,
-        D_Children_7_12,
-        D_Children_13_17,
-        D_Children_18over,				//Currently this will return 0 (false) as children leave home when they are 18
         D_Econ_benefits,
         D_Home_owner,
         Dhh_owned_L1,
         Dag,
         Dag_sq,
+        Dag16,                          //Indicator: aged exactly 16
         Dag_knot17,
         Dag_knot23,
         Dag_knot26,
@@ -2148,6 +2142,7 @@ public class Person implements EventListener, IDoubleSource, IIntSource, Weight,
         Ded_Yplgrs_dv_L1,
         Ded_Yplgrs_dv_L2,
         Ded_Ypncp_L1,
+        Ded_Dehsp_c4_Low_L1,
 
         Ded_Dnc_L1,
         Ded_Dnc02_L1,
@@ -2230,7 +2225,11 @@ public class Person implements EventListener, IDoubleSource, IIntSource, Weight,
         Dlltsdsp_L1,
         Dnc_L1, 						//Lag(1) of number of children of all ages in the benefitUnit
         Dnc02_L1, 						//Lag(1) of number of children aged 0-2 in the benefitUnit
+        Dnc02_yes_L1, 					//Lag(1) indicator: one or more children aged 0-2 in the benefitUnit
         Dnc017, 						//Number of children aged 0-17 in the benefitUnit
+        Dnc1_L1, 						//Lag(1) indicator: exactly one dependent child in the benefitUnit
+        Dnc1_plus_L1, 					//Lag(1) indicator: one or more dependent children in the benefitUnit
+        Dnc2_plus_L1, 					//Lag(1) indicator: two or more dependent children in the benefitUnit
         EmployedToUnemployed,
         EquivalisedConsumptionYearly,
         EquivalisedIncomeYearly, 							//Equivalised income for use with the security index
@@ -2239,6 +2238,14 @@ public class Person implements EventListener, IDoubleSource, IIntSource, Weight,
         GrossEarningsYearly,
         GrossLabourIncomeMonthly,
         InverseMillsRatio,
+        InvMillsRatio,                  //Same as InverseMillsRatio; name used by the ES estimates
+        ES1, // Spain
+        ES2,
+        ES3,
+        ES4,
+        ES5,
+        ES6,
+        ES7,
         HUA, // Hungary
         HUB,
         HUC,
@@ -2250,13 +2257,13 @@ public class Person implements EventListener, IDoubleSource, IIntSource, Weight,
         L1_hourly_wage,
         L1_log_hourly_wage,
         L1_log_hourly_wage_sq,
-        Ld_children_2under,
         Ld_children_3under,
         Ld_children_4_12,
         Lemployed,
         Lhw_L1,
         Les_c3_Employed_L1,
         Les_c3_NotEmployed_L1,
+        Les_c2_NotEmployed_L1,          //Lag(1) indicator: student or not employed (Stata lesnr_c2 = les_c4 in {2,3})
         Les_c3_Sick_L1,					//This is based on dlltsd
         Les_c3_Student_L1,
         Les_c4_Student_L1,
@@ -2272,10 +2279,13 @@ public class Person implements EventListener, IDoubleSource, IIntSource, Weight,
         Lesdf_c4_BothNotEmployed_L1,
         Lesdf_c4_EmployedSpouseNotEmployed_L1, 					//Own and partner's activity status lag(1)
         Lesdf_c4_NotEmployedSpouseEmployed_L1,
+        Lesdf_c4_BothNotEmp_L1,         //Same as the three Lesdf_c4 terms above; names used by the ES estimates
+        Lesdf_c4_EmpSpouseNotEmp_L1,
+        Lesdf_c4_NotEmpSpouseEmp_L1,
         Lessp_c3_NotEmployed_L1,
         Lessp_c3_Sick_L1,
         Lessp_c3_Student_L1,			//Partner variables
-        Liwwh,									//Work history in months
+        Liwwh,									//Work history in years
         LnAge,
         Lnonwork,
         Lstudent,
@@ -2296,11 +2306,17 @@ public class Person implements EventListener, IDoubleSource, IIntSource, Weight,
         Pt,
         Reached_Retirement_Age,						//Indicator whether individual is at or above retirement age
         Reached_Retirement_Age_Les_c3_NotEmployed_L1, //Interaction term for being at or above retirement age and not employed in the previous year
+        Reached_Retirement_Age_Les_c2_NotEmployed_L1, //Interaction term for being at or above retirement age and student or not employed in the previous year
+        Reached_Retirement_Age_Les_L1,  //Same as Reached_Retirement_Age_Les_c2_NotEmployed_L1; name used by the ES estimates
         Reached_Retirement_Age_Sp,					//Indicator whether spouse is at or above retirement age
+        Reached_Retirement_Age_Sp_L1,				//Lag(1) indicator: partner was at or above state pension age
         Elig_pen,     // Age == state retirement age
         Elig_pen_L1, // Age == state retirement age +1
         Elig_pen_Sp, // Partner's age == state retirement age
+        Elig_pen_Sp_L1, // Lag(1) indicator: partner was at state pension age
         Elig_pen_L1_Sp, // // Partner's age == state retirement age +1
+        Elig_pen_L1_Sp_L1, // Lag(1) indicator: partner was one year past state pension age.
+                           // Inner _L1 is the age offset (SPA+1), outer _L1 is the one-year time lag
         RealGDPGrowth,
         RealIncomeChange, //Note: the above return a 0 or 1 value, but income variables will return the change in income or 0
         RealIncomeDecrease_D,
@@ -2419,6 +2435,15 @@ public class Person implements EventListener, IDoubleSource, IIntSource, Weight,
         Ydses_c5_Q5_L1,								//HH Income Lag(1) 5th Quantile
         Ydses_L1,
         Ydses_c5_L1,
+        Parents_ypnb_Q2_L1,							//Lag(1) co-resident parents' non-benefit income, 2nd quintile
+        Parents_ypnb_Q3_L1,
+        Parents_ypnb_Q4_L1,
+        Parents_ypnb_Q5_L1,
+        Parents_known_L1,							//Lag(1) a mother or father lived in the household
+        Parents_known_Ydses_Q2_L1,					//Parents_known_L1 x Ydses_c5_Q2_L1
+        Parents_known_Ydses_Q3_L1,
+        Parents_known_Ydses_Q4_L1,
+        Parents_known_Ydses_Q5_L1,
         Year_transformed,							//Year - 2000
         Year_transformed_R1a,
         Year_transformed_R1b,
@@ -2467,6 +2492,9 @@ public class Person implements EventListener, IDoubleSource, IIntSource, Weight,
             }
 
 
+            case Dag16 -> {
+                return (demAge == 16) ? 1. : 0.;
+            }
             case Dag_knot17 -> {
                 return (double) Math.max(0, demAge - 17);
             }
@@ -2600,6 +2628,9 @@ public class Person implements EventListener, IDoubleSource, IIntSource, Weight,
             case Ded_Ypncp_L1 -> {
                 return Indicator.True.equals(eduSpellFlag) ? yCapitalPersMonthL1 : 0;
             }
+            case Ded_Dehsp_c4_Low_L1 -> {
+                return (Indicator.True.equals(eduSpellFlag) && Education.Low.equals(eduDehspC4L1)) ? 1.0 : 0.0;
+            }
 
             case Ded_Dnc_L1 -> {
                 return Indicator.True.equals(eduSpellFlag) ? getNumberChildrenAll_lag1() : 0;
@@ -2691,8 +2722,20 @@ public class Person implements EventListener, IDoubleSource, IIntSource, Weight,
             case Dnc_L1 -> {
                 return (double) getNumberChildrenAll_lag1();
             }
+            case Dnc1_L1 -> { // exactly one dependent child last year
+                return (getNumberChildrenAll_lag1() == 1) ? 1. : 0.;
+            }
+            case Dnc1_plus_L1 -> { // one or more dependent children last year; equivalent to D_Children_L1
+                return (getNumberChildrenAll_lag1() > 0) ? 1. : 0.;
+            }
+            case Dnc2_plus_L1 -> { // two or more dependent children last year
+                return (getNumberChildrenAll_lag1() >= 2) ? 1. : 0.;
+            }
             case Dnc02_L1 -> {
                 return (double) getNumberChildren02_lag1();
+            }
+            case Dnc02_yes_L1 -> { // one or more children aged 0-2 last year
+                return (getNumberChildren02_lag1() > 0) ? 1. : 0.;
             }
             case Dnc017 -> {
                 return (double) getNumberChildren017();
@@ -2838,21 +2881,6 @@ public class Person implements EventListener, IDoubleSource, IIntSource, Weight,
                 else return 0.;
             }
 
-            case D_Children_2under -> {
-                return (double) benefitUnit.getIndicatorChildren(0, 2).ordinal();
-            }
-            case D_Children_3_6 -> {
-                return (double) benefitUnit.getIndicatorChildren(3, 6).ordinal();
-            }
-            case D_Children_7_12 -> {
-                return (double) benefitUnit.getIndicatorChildren(7, 12).ordinal();
-            }
-            case D_Children_13_17 -> {
-                return (double) benefitUnit.getIndicatorChildren(13, 17).ordinal();
-            }
-            case D_Children_18over -> {
-                return (double) benefitUnit.getIndicatorChildren(18, 99).ordinal();
-            }
             case D_Children -> {
                 return (getNumberChildrenAll() > 0) ? 1. : 0.;
             }
@@ -2874,11 +2902,8 @@ public class Person implements EventListener, IDoubleSource, IIntSource, Weight,
             case GrossLabourIncomeMonthly -> {
                 return getCovidModuleGrossLabourIncome_Baseline();
             }
-            case InverseMillsRatio -> {
+            case InverseMillsRatio, InvMillsRatio -> {
                 return getInverseMillsRatio();
-            }
-            case Ld_children_2under -> {
-                return (getNumberChildren02_lag1() > 0) ? 1.0 : 0.0;
             }
             case Ld_children_3under -> {
                 return benefitUnit.getIndicatorChildren03_lag1().ordinal();
@@ -2937,6 +2962,11 @@ public class Person implements EventListener, IDoubleSource, IIntSource, Weight,
             case Les_c3_NotEmployed_L1 -> {
                 return ((Les_c4.NotEmployed.equals(labC4L1)) || (Les_c4.Retired.equals(labC4L1))) ? 1.0 : 0.0;
             }
+            case Les_c2_NotEmployed_L1 -> {
+                // Stata lesnr_c2 (07_reg_retirement_ES.do): 1 if les_c4 in {Student, NotEmployed}, 0 if employed.
+                // Retired is missing there, so retired person-years never enter the estimation sample.
+                return isNotEmployedC2Lag1() ? 1.0 : 0.0;
+            }
             case Les_c3_Employed_L1 -> {
                 return (Les_c4.EmployedOrSelfEmployed.equals(labC4L1)) ? 1.0 : 0.0;
             }
@@ -2970,13 +3000,13 @@ public class Person implements EventListener, IDoubleSource, IIntSource, Weight,
             case Retired -> {
                 return Les_c4.Retired.equals(labC4) ? 1. : 0.;
             }
-            case Lesdf_c4_EmployedSpouseNotEmployed_L1 -> {                    //Own and partner's activity status lag(1)
+            case Lesdf_c4_EmployedSpouseNotEmployed_L1, Lesdf_c4_EmpSpouseNotEmp_L1 -> {                    //Own and partner's activity status lag(1)
                 return (Lesdf_c4.EmployedSpouseNotEmployed.equals(labStatusPartnerAndOwnC4L1)) ? 1. : 0.;
             }
-            case Lesdf_c4_NotEmployedSpouseEmployed_L1 -> {
+            case Lesdf_c4_NotEmployedSpouseEmployed_L1, Lesdf_c4_NotEmpSpouseEmp_L1 -> {
                 return (Lesdf_c4.NotEmployedSpouseEmployed.equals(labStatusPartnerAndOwnC4L1)) ? 1. : 0.;
             }
-            case Lesdf_c4_BothNotEmployed_L1 -> {
+            case Lesdf_c4_BothNotEmployed_L1, Lesdf_c4_BothNotEmp_L1 -> {
                 if (labStatusPartnerAndOwnC4L1 != null)
                     return labStatusPartnerAndOwnC4L1.equals(Lesdf_c4.BothNotEmployed) ? 1. : 0.;
                 else
@@ -3299,6 +3329,34 @@ public class Person implements EventListener, IDoubleSource, IIntSource, Weight,
                     return (double) getYdses_c5_lag1().getValue();
                 } else return 0.;
             }
+            // No co-resident parent (Stata: missing, dropped from E1a) scores as Q1, i.e. all dummies zero
+            case Parents_ypnb_Q2_L1 -> {
+                return (Ydses_c5.Q2.equals(parentsYpnbQuintileL1)) ? 1.0 : 0.0;
+            }
+            case Parents_ypnb_Q3_L1 -> {
+                return (Ydses_c5.Q3.equals(parentsYpnbQuintileL1)) ? 1.0 : 0.0;
+            }
+            case Parents_ypnb_Q4_L1 -> {
+                return (Ydses_c5.Q4.equals(parentsYpnbQuintileL1)) ? 1.0 : 0.0;
+            }
+            case Parents_ypnb_Q5_L1 -> {
+                return (Ydses_c5.Q5.equals(parentsYpnbQuintileL1)) ? 1.0 : 0.0;
+            }
+            case Parents_known_L1 -> {
+                return parentsKnownL1 ? 1.0 : 0.0;
+            }
+            case Parents_known_Ydses_Q2_L1 -> {
+                return (parentsKnownL1 && Ydses_c5.Q2.equals(getYdses_c5_lag1())) ? 1.0 : 0.0;
+            }
+            case Parents_known_Ydses_Q3_L1 -> {
+                return (parentsKnownL1 && Ydses_c5.Q3.equals(getYdses_c5_lag1())) ? 1.0 : 0.0;
+            }
+            case Parents_known_Ydses_Q4_L1 -> {
+                return (parentsKnownL1 && Ydses_c5.Q4.equals(getYdses_c5_lag1())) ? 1.0 : 0.0;
+            }
+            case Parents_known_Ydses_Q5_L1 -> {
+                return (parentsKnownL1 && Ydses_c5.Q5.equals(getYdses_c5_lag1())) ? 1.0 : 0.0;
+            }
             case Ypnbihs_dv_L1 -> {
                 if (yNonBenPersGrossMonthL1 != null) {
                     return yNonBenPersGrossMonthL1;
@@ -3435,10 +3493,29 @@ public class Person implements EventListener, IDoubleSource, IIntSource, Weight,
                     } else {
                         retirementAgePartner += (int) Parameters.getTimeSeriesValue(getYear(), Gender.Male.toString(), TimeSeriesVariable.FixedRetirementAge);
                     }
-                    return (partner.demAge >= retirementAgePartner) ? 1. : 0.;
+                    return (partner.demAge == retirementAgePartner) ? 1. : 0.;
                 } else {
                     return 0.;
                 }
+            }
+            case Reached_Retirement_Age_Sp_L1 -> { // Partner was at or above state retirement age in the previous year
+                Person partner = getPartner();
+                if (partner == null)
+                    return 0.;
+                return (partner.demAge - 1 >= getFixedRetirementAge(partner, getYear() - 1)) ? 1. : 0.;
+            }
+            case Elig_pen_Sp_L1 -> { // Partner's age == state retirement age in the previous year
+                Person partner = getPartner();
+                if (partner == null)
+                    return 0.;
+                return (partner.demAge - 1 == getFixedRetirementAge(partner, getYear() - 1)) ? 1. : 0.;
+            }
+            case Elig_pen_L1_Sp_L1 -> { // Partner's age == state retirement age +1 in the previous year.
+                                        // Inner _L1 is the age offset (SPA+1), outer _L1 is the one-year time lag
+                Person partner = getPartner();
+                if (partner == null)
+                    return 0.;
+                return (partner.demAge - 1 == getFixedRetirementAge(partner, getYear() - 1) + 1) ? 1. : 0.;
             }
             case Reached_Retirement_Age_Les_c3_NotEmployed_L1 -> { //Reached retirement age and was not employed in the previous year
                 int retirementAge;
@@ -3448,6 +3525,11 @@ public class Person implements EventListener, IDoubleSource, IIntSource, Weight,
                     retirementAge = (int) Parameters.getTimeSeriesValue(getYear(), Gender.Male.toString(), TimeSeriesVariable.FixedRetirementAge);
                 }
                 return ((demAge >= retirementAge) && (labC4L1.equals(Les_c4.NotEmployed) || labC4L1.equals(Les_c4.Retired))) ? 1. : 0.;
+            }
+            case Reached_Retirement_Age_Les_c2_NotEmployed_L1, Reached_Retirement_Age_Les_L1 -> {
+                // Stata Reached_Retirement_Age * l.Les_c3_NotEmployed, where Reached_Retirement_Age = dagpns
+                // (at or above state pension age this year) and Les_c3_NotEmployed = lesnr_c2
+                return (demAge >= getFixedRetirementAge(this, getYear()) && isNotEmployedC2Lag1()) ? 1. : 0.;
             }
             case EquivalisedIncomeYearly -> {
                 return getBenefitUnit().getEquivalisedDisposableIncomeYearly();
@@ -3543,6 +3625,28 @@ public class Person implements EventListener, IDoubleSource, IIntSource, Weight,
             }
             case Deh_c4_Medium_Dag -> {
                 return (Education.Medium.equals(eduHighestC4)) ? demAge : 0.0;
+            }
+            // Spain
+            case ES1 -> {
+                return Region.ES1.equals(getRegion()) ? 1.0 : 0.0;
+            }
+            case ES2 -> {
+                return Region.ES2.equals(getRegion()) ? 1.0 : 0.0;
+            }
+            case ES3 -> {
+                return Region.ES3.equals(getRegion()) ? 1.0 : 0.0;
+            }
+            case ES4 -> {
+                return Region.ES4.equals(getRegion()) ? 1.0 : 0.0;
+            }
+            case ES5 -> {
+                return Region.ES5.equals(getRegion()) ? 1.0 : 0.0;
+            }
+            case ES6 -> {
+                return Region.ES6.equals(getRegion()) ? 1.0 : 0.0;
+            }
+            case ES7 -> {
+                return Region.ES7.equals(getRegion()) ? 1.0 : 0.0;
             }
             // Hungary
             case HUA -> {
@@ -3734,6 +3838,65 @@ public class Person implements EventListener, IDoubleSource, IIntSource, Weight,
 
     public void setLes_c7_covid_lag1(Les_c7_covid labC7CovidL1) {
          this.labC7CovidL1 = labC7CovidL1;
+    }
+
+    /**
+     * Mothers and fathers living in this person's household, searched among household members only.
+     * Simulation ids (idMother/idFather) cover minors, people born in the simulation and people who turned
+     * 18 in it. Adults from the initial population have no idMother/idFather after cloning, so for them the
+     * survey ids (idMother/FatherImmutable) are matched against members' idOriginalPerson. Restricting the
+     * search to the household keeps the clones of an expanded household apart.
+     */
+    private List<Person> getCoresidentParents() {
+
+        List<Person> parents = new ArrayList<>(2);
+        if (benefitUnit == null || benefitUnit.getHousehold() == null)
+            return parents;
+        boolean useSurveyIds = !Boolean.TRUE.equals(demBornInSimFlag) && idPersOriginal != null &&
+                (idMotherImmutable != null || idFatherImmutable != null);
+        for (BenefitUnit unit : benefitUnit.getHousehold().getBenefitUnits()) {
+            for (Person member : unit.getMembers()) {
+                if (member == this)
+                    continue;
+                Long memberId = member.getId();
+                Long memberIdOriginal = member.getIdOriginalPerson();
+                boolean isParent = (idMother != null && idMother.equals(memberId)) ||
+                        (idFather != null && idFather.equals(memberId)) ||
+                        (useSurveyIds && memberIdOriginal != null && !Boolean.TRUE.equals(member.demBornInSimFlag) &&
+                                (memberIdOriginal.equals(idMotherImmutable) || memberIdOriginal.equals(idFatherImmutable)));
+                if (isParent)
+                    parents.add(member);
+            }
+        }
+        return parents;
+    }
+
+    /**
+     * Parental regressors of the education processes, as in input/ES/do_files_reg_estim/01_reg_education_ES.do:
+     * Parents_known is a mother or father in the same household; parents' income is asinh of the sum, in levels,
+     * of their ypnbihs_dv (Stata: asinh(sinh(m)+sinh(f)) with rowtotal, so a missing income is skipped).
+     * Called from updateLaggedVariables, before this year's incomes are computed, so it holds t-1 values.
+     */
+    private void updateParentsLaggedVariables() {
+
+        List<Person> parents = getCoresidentParents();
+        parentsKnownL1 = !parents.isEmpty();
+        Double level = null;
+        for (Person parent : parents) {
+            Double ypnb = parent.getYpnbihs_dv();
+            if (ypnb != null)
+                level = (level == null ? 0. : level) + Math.sinh(ypnb);
+        }
+        parentsYpnbL1 = (level == null) ? null : Parameters.asinh(level);
+        parentsYpnbQuintileL1 = null; // assigned by SimPathsModel.updateParentsIncomeQuintiles
+    }
+
+    public Double getParentsYpnbL1() {
+        return parentsYpnbL1;
+    }
+
+    public void setParentsYpnbQuintileL1(Ydses_c5 quintile) {
+        parentsYpnbQuintileL1 = quintile;
     }
 
     public HouseholdStatus getHouseholdStatus() {
@@ -4101,6 +4264,40 @@ public class Person implements EventListener, IDoubleSource, IIntSource, Weight,
             }
         }
         labHrsWorkWeek = getLabourSupplyHoursWeekly(); // Update number of hours worked weekly
+    }
+
+    /**
+     * Fixes the EU-SILC hours-distribution sheet for the coming labour-supply choice pass (called from
+     * BenefitUnit.resetLabourStates), so the sample type is resolved once per pass rather than for every
+     * candidate hours bracket, which would rerun the partner's atRiskOfWork() each time.
+     */
+    public void updateSilcLhwSheet() {
+        silcLhwSheet = (Parameters.USE_SILC_LHW_DISTRIBUTION_ES && "ES".equals(Parameters.COUNTRY_STRING))
+                ? findSilcLhwSheet() : null;
+    }
+
+    /**
+     * EU-SILC hours-distribution sheet used to draw realised hours (Parameters.USE_SILC_LHW_DISTRIBUTION_ES):
+     * the one fixed at the start of the last labour-supply choice pass, otherwise the person's current sample type.
+     */
+    public String getSilcLhwSheet() {
+        return (silcLhwSheet != null) ? silcLhwSheet : findSilcLhwSheet();
+    }
+
+    /**
+     * Sample type and gender of the person, mirroring the choice of labour-supply estimates in BenefitUnit:
+     * Couple when both partners are flexible in labour supply, Single_dep when the partner is not,
+     * Adult_child for single adult children and Single_indep for other singles.
+     */
+    private String findSilcLhwSheet() {
+        String sample;
+        if (benefitUnit != null && Occupancy.Couple.equals(benefitUnit.getOccupancy())) {
+            Person partner = (Gender.Female.equals(demMaleFlag)) ? benefitUnit.getMale() : benefitUnit.getFemale();
+            sample = (partner != null && partner.atRiskOfWork()) ? "Couple" : "Single_dep";
+        } else {
+            sample = (getAdultChildFlag() == 1) ? "Adult_child" : "Single_indep";
+        }
+        return sample + (Gender.Female.equals(demMaleFlag) ? "_female" : "_male");
     }
 
     public double getLabourSupplyHoursYearly() {
@@ -4773,6 +4970,24 @@ public class Person implements EventListener, IDoubleSource, IIntSource, Weight,
         i_demCompHhC4L1 = dhhtp_c4_lag1;
     }
 
+    /**
+     * State pension age applying to a person in a given year, as used by the retirement regressors.
+     * Lagged regressors pass getYear()-1 to obtain the schedule that was in force the previous year.
+     */
+    private static int getFixedRetirementAge(Person person, int year) {
+        Gender gender = Gender.Female.equals(person.demMaleFlag) ? Gender.Female : Gender.Male;
+        return (int) Parameters.getTimeSeriesValue(year, gender.toString(), TimeSeriesVariable.FixedRetirementAge);
+    }
+
+    /**
+     * Two-category non-employment in the previous year, as Stata's lesnr_c2 in 07_reg_retirement_ES.do:
+     * student or not employed. Retired is excluded (missing in Stata), which is immaterial for the
+     * retirement process because retirement is absorbing and only non-retired persons are at risk.
+     */
+    private boolean isNotEmployedC2Lag1() {
+        return Les_c4.Student.equals(labC4L1) || Les_c4.NotEmployed.equals(labC4L1);
+    }
+
     private Integer getNumberChildrenAll_lag1() {
         if (benefitUnit != null) {
             return (benefitUnit.getNumberChildrenAll_lag1() != null) ? benefitUnit.getNumberChildrenAll_lag1() : 0;
@@ -4939,8 +5154,25 @@ public class Person implements EventListener, IDoubleSource, IIntSource, Weight,
     public void setPersonContinuousHoursLabourSupplyMap(Map<Labour, Integer> personContinuousHoursLabourSupplyMap) {
         this.personContinuousHoursLabourSupplyMap = personContinuousHoursLabourSupplyMap;
     }
-    public double getLabourSupplySingleDraw() {
-        return innovations.getSingleDrawDoubleInnov(0);
+    public double getLabourSupplyHoursDraw() {
+        if (Parameters.redrawHoursEachYear && labHrsDrawYear != null)
+            return labHrsDrawYear;
+        return innovations.getSingleDrawDoubleInnov(0); // lifetime draw
+    }
+    /**
+     * Refreshes the yearly hours draw when Parameters.redrawHoursEachYear is true. Called at the start of the
+     * labour-supply choice, so hours realised last year are unchanged by the draw until the new choice is made.
+     * Innovation 19 is fixed within the year, so repeated calls in the same year return the same draw.
+     */
+    public void updateLabourSupplyHoursDraw() {
+        if (Parameters.redrawHoursEachYear)
+            labHrsDrawYear = innovations.getDoubleDraw(19);
+    }
+    public boolean isEvaluatingLabourChoice() {
+        return evaluatingLabourChoice;
+    }
+    public void setEvaluatingLabourChoice(boolean evaluatingLabourChoice) {
+        this.evaluatingLabourChoice = evaluatingLabourChoice;
     }
     public double getBenefitUnitRandomUniform() {return innovations.getDoubleDraw(31);}
 
