@@ -5,6 +5,7 @@ package simpaths.data;
 
 import microsim.data.MultiKeyCoefficientMap;
 import microsim.data.excel.ExcelAssistant;
+//import microsim.engine.SimulationEngine;    // used by bootstrapScaleRobust (switched off)
 import microsim.statistics.regression.*;
 import microsim.statistics.regression.RegressionType;
 import org.apache.commons.collections4.keyvalue.MultiKey;
@@ -13,6 +14,8 @@ import org.apache.commons.collections4.map.MultiKeyMap;
 import org.apache.commons.lang3.tuple.Triple;
 import org.apache.commons.math3.distribution.MultivariateNormalDistribution;
 import org.apache.commons.math3.distribution.NormalDistribution;
+//import org.apache.commons.math3.linear.SingularMatrixException;    // used by bootstrapScaleRobust (switched off)
+//import org.apache.commons.math3.random.RandomGenerator;    // used by bootstrapScaleRobust (switched off)
 import org.apache.commons.math3.util.Pair;
 import org.apache.commons.collections4.MapIterator;
 import simpaths.data.startingpop.DataParser;
@@ -160,13 +163,19 @@ public class Parameters {
     public static String COUNTRY_STRING = "";
 
     public static int MIN_AGE_TO_HAVE_INCOME = 16; //Minimum age to have non-employment non-benefit income
-    public static int MAX_LABOUR_HOURS_IN_WEEK = 60;
+    public static int MAX_LABOUR_HOURS_IN_WEEK = 84;
     public static int HOURS_IN_WEEK = 24*7; // currently, 24 hours per day is used to calculate leisure in labour supply
     public static boolean USE_CONTINUOUS_LABOUR_SUPPLY_HOURS = true; // If true, a random number of hours of weekly labour supply within each bracket will be generated. Otherwise, each discrete choice of labour supply corresponds to a fixed number of hours of labour supply, which is the same for all persons
+    public static boolean USE_MIDPOINT_HOURS = false; // Applies only to realised hours of brackets that do not spread hours (Labour.spreadsRealisedHours false): if true, they realise at the bracket midpoint (min + max) / 2 instead of their representative hours. Choice-stage (utility) evaluation always uses representative hours for these brackets; brackets that spread hours are unaffected
+    public static boolean useRepresentativeHoursInUtility = true; // If true, the labour-supply utility optimisation evaluates each hours bracket at its representative hours (Labour.getRepresentativeHours) rather than at the person's drawn hours; drawn hours apply only once the bracket has been chosen
+    public static boolean redrawHoursEachYear = false; // If true, the position of a person's hours within their bracket is redrawn every year (at the labour-supply choice); otherwise one draw is kept for life
+    public static boolean USE_SILC_LHW_DISTRIBUTION_ES = true; // ES only: if true, realised hours in every positive ES band are drawn from the EU-SILC distribution of observed weekly hours (lhw) within that band, for the person's sample type and gender (input/ES/silc_lhw_distribution.xlsx); the top band runs to MAX_LABOUR_HOURS_IN_WEEK. Overrides the per-band spread setting and USE_MIDPOINT_HOURS for ES. Choice-stage evaluation still uses representative hours (useRepresentativeHoursInUtility). If false, ES hours realise as set in Labour
 
     public static int AGE_TO_BECOME_RESPONSIBLE = 18;            // Age become reference person of own benefit unit
     public static int AGE_TO_BECOME_SEMI_RESPONSIBLE = 16;      //Age used in health processes H1, H2
-    public static int AGE_LEAVE_PARENTAL_HOME = 18;
+    public static int MIN_AGE_LEAVE_PH = 18;                // Minimum age to leave the parental home (Stata: age_leave_parental_home)
+    public static int MAX_AGE_ADULT_CHILD = 45;             // Maximum age at which a person can still be considered as an Adult Child;
+                                                            // demAdultChildFlag is reset to 0 above this age
     public static int MIN_AGE_TO_LEAVE_EDUCATION = 16;        // Minimum age for a person to leave (full-time) education
     public static int MAX_AGE_TO_STAY_IN_CONTINUOUS_EDUCATION = 29;
 
@@ -180,6 +189,8 @@ public class Parameters {
     public static double ANNUITY_RATE_OF_RETURN = 0.015;
 
     public static int MIN_HOURS_FULL_TIME_EMPLOYED = 25;    // used to distinguish full-time from part-time employment (needs to be consistent with Labour enum)
+    public static int MIN_HOURS_EMPLOYED = 6;    // minimum weekly hours to count as employed in the initial population; also the lower bound
+                                                // of Labour.CATEGORY_ES_1, below which ES hours convert to Labour.ZERO
     public static double MIN_HOURLY_WAGE_RATE = 0.0;
     public static double MAX_HOURLY_WAGE_RATE = 75.0;
     public static double MAX_HOURS_WEEKLY_FORMAL_CARE = 150.0;
@@ -312,6 +323,11 @@ public class Parameters {
     public static boolean flagUnemployment = false;
 
     public static int BASE_PRICE_YEAR = 2015;            // Base price year of model parameters
+
+    // Income in the labour-supply utility (reg_labourSupplyUtility.xlsx) must be in the prices the estimates used.
+    // The model holds income in BASE_PRICE_YEAR prices, so it is multiplied by this factor, set in loadParameters
+    // from labourSupplyEstimationPriceYear(). It would be 1.0 for estimates in BASE_PRICE_YEAR prices.
+    private static double labourSupplyIncomePriceFactor = 1.0;
 
     public static double PROB_NEWBORN_IS_MALE = 0.5;            // Must be strictly greater than 0.0 and less than 1.0
 
@@ -930,6 +946,7 @@ public class Parameters {
     }
 
 
+
     public static void defineCountryString(Country country) {COUNTRY_STRING  =country.toString(); }
 
     /**
@@ -977,6 +994,8 @@ public class Parameters {
         String countryString = country.toString();
         COUNTRY_STRING  = country.toString();
         loadTimeSeriesFactorMaps(country);
+        setLabourSupplyIncomePriceFactor(country);
+        loadSilcLhwDistributionES(country);
         instantiateAlignmentMaps();
 
         // scenario parameters
@@ -2045,7 +2064,17 @@ public class Parameters {
         rebaseIndexMap(TimeSeriesVariable.WageGrowth);
 
         // load year-specific fiscal policy parameters
-        socialCarePolicy = ExcelAssistant.loadCoefficientMap(resolveCountryFile(country, "social_care_parameters.xlsx"), "social care", 1);
+        // Social care is optional: the workbook is only consulted when flagSocialCare is on
+        // (TaxEvaluation -> SocialCareExpenditureSupport -> getSocialCarePolicyValue), and countries
+        // that do not model it need not ship the file. The guard tests for the file rather than the
+        // flag because this method runs before flagSocialCare is assigned in loadParameters, and is
+        // also called standalone from SimPathsStart where the flag is not set at all.
+        String socialCareParametersFile = resolveCountryFile(country, "social_care_parameters.xlsx");
+        if (new File(socialCareParametersFile).exists()) {
+            socialCarePolicy = ExcelAssistant.loadCoefficientMap(socialCareParametersFile, "social care", 1);
+        } else {
+            socialCarePolicy = null;
+        }
         partneredShare = ExcelAssistant.loadCoefficientMap(resolveCountryFile(country, "alignment_targets_partnered_share.xlsx"), "partnered", 1);
         retiredShare = ExcelAssistant.loadCoefficientMap(resolveCountryFile(country, "alignment_targets_retirement.xlsx"), "retirement", 1);
         disabledShare = ExcelAssistant.loadCoefficientMap(resolveCountryFile(country, "alignment_targets_disability.xlsx"), "disability", 1);
@@ -2248,6 +2277,92 @@ public class Parameters {
 
     public static double getTimeSeriesValue(int year, TimeSeriesVariable timeSeriesVariable) {
         return getTimeSeriesValue(year, null, null, timeSeriesVariable);
+    }
+
+    // Price year of the income variable in the labour-supply estimates (reg_labourSupplyUtility.xlsx):
+    // EU-SILC 2024 incomes (2023 reference year) run through the 2023 EUROMOD systems, not deflated
+    // (e.g. input/ES/do-files, ES master-elast.do). Overwritten by the key of the same name in
+    // input/<COUNTRY>/parameters.xlsx, so it can differ by country; not final, so that the loader can set it.
+    private static int LABOUR_SUPPLY_ESTIMATION_PRICE_YEAR = 2023;
+
+    /** Price year of the income variable in a country's labour-supply estimates (set in parameters.xlsx). */
+    private static int labourSupplyEstimationPriceYear(Country country) {
+        return LABOUR_SUPPLY_ESTIMATION_PRICE_YEAR;
+    }
+
+    /** Sets the factor that converts BASE_PRICE_YEAR income to the price year of the labour-supply estimates. */
+    private static void setLabourSupplyIncomePriceFactor(Country country) {
+        int priceYear = labourSupplyEstimationPriceYear(country);
+        labourSupplyIncomePriceFactor = (priceYear == BASE_PRICE_YEAR) ? 1.0 :
+                getTimeSeriesValue(priceYear, TimeSeriesVariable.Inflation) / getTimeSeriesValue(BASE_PRICE_YEAR, TimeSeriesVariable.Inflation);
+    }
+
+    /** Multiplies BASE_PRICE_YEAR income to express it in the prices of the labour-supply estimates. */
+    public static double getLabourSupplyIncomePriceFactor() {
+        return labourSupplyIncomePriceFactor;
+    }
+
+    // EU-SILC weekly-hours distributions used when USE_SILC_LHW_DISTRIBUTION_ES is true: cumulative frequency
+    // indexed by weekly hours 0..84, keyed by sheet name (sample type and gender, e.g. "Couple_female")
+    private static final String SILC_LHW_DISTRIBUTION_FILE_ES = "silc_lhw_distribution.xlsx";
+    private static final String[] SILC_LHW_SHEETS_ES = {"Single_indep_male", "Single_indep_female", "Couple_male", "Couple_female",
+            "Single_dep_male", "Single_dep_female", "Adult_child_male", "Adult_child_female"};
+    private static Map<String, double[]> silcLhwCumulativeES;
+
+    /** Loads the EU-SILC hours distributions of input/ES (ES with USE_SILC_LHW_DISTRIBUTION_ES only). */
+    private static void loadSilcLhwDistributionES(Country country) {
+        silcLhwCumulativeES = null;
+        if (country != Country.ES || !USE_SILC_LHW_DISTRIBUTION_ES) return;
+
+        silcLhwCumulativeES = new HashMap<>();
+        String file = resolveCountryFile(country, SILC_LHW_DISTRIBUTION_FILE_ES);
+        for (String sheet : SILC_LHW_SHEETS_ES) {
+            MultiKeyCoefficientMap map = ExcelAssistant.loadCoefficientMap(file, sheet, 1);
+            // read the frequencies f(h), then turn them in place into the cumulative distribution F(h) = f(0) + ... + f(h)
+            double[] cumFreq = new double[85];
+            for (Object entryObject : map.entrySet()) {
+                Map.Entry<?, ?> entry = (Map.Entry<?, ?>) entryObject;
+                int hours = (int) Math.round(Double.parseDouble(((MultiKey<?>) entry.getKey()).getKey(0).toString()));
+                if (hours >= 0 && hours < cumFreq.length)
+                    cumFreq[hours] += ((Number) entry.getValue()).doubleValue();
+            }
+            for (int h = 1; h < cumFreq.length; h++)
+                cumFreq[h] += cumFreq[h - 1];
+            silcLhwCumulativeES.put(sheet, cumFreq);
+        }
+    }
+
+    /**
+     * Draws realised weekly hours in the band [min, max] from the EU-SILC hours distribution of the given sheet, so
+     * that each hour is drawn with probability equal to its SILC share within the band (hours never observed are
+     * never drawn). u is the person's uniform draw. Returns -1 if the band has no SILC frequency.
+     */
+    public static int drawSilcLhwHoursES(String sheet, int min, int max, double u) {
+        if (silcLhwCumulativeES == null)
+            throw new IllegalStateException("EU-SILC hours distributions not loaded: USE_SILC_LHW_DISTRIBUTION_ES is set but the country is not ES");
+        double[] cumFreq = silcLhwCumulativeES.get(sheet);
+        if (cumFreq == null)
+            throw new IllegalArgumentException("No EU-SILC hours distribution for sheet " + sheet);
+
+        int bandLow = Math.max(min, 1);
+        int bandHigh = Math.min(max, cumFreq.length - 1);
+        if (bandHigh < bandLow) return -1;
+
+        double cumBelowBand = cumFreq[bandLow - 1];
+        double bandShare = cumFreq[bandHigh] - cumBelowBand;
+        if (!(bandShare > 0.0)) return -1;
+
+        // Map the uniform draw u onto the cumulative probability range of the allowed hours band.
+        // Select the first hour whose cumulative probability exceeds this target,
+        // preserving the relative EU-SILC frequencies within the band.
+
+        double cumTarget = cumBelowBand + u * bandShare;
+        for (int h = bandLow; h <= bandHigh; h++)
+            if (cumFreq[h] > cumTarget) return h;
+
+        int h = bandHigh;
+        while (h > bandLow && cumFreq[h - 1] >= cumFreq[h]) h--;
+        return h;
     }
 
     /**
@@ -2582,6 +2697,9 @@ public static void putPrevOrNewTarget(int year, Object newTarget, TimeSeriesVari
 
     public static double getSocialCarePolicyValue(int year, String param) {
 
+        if (socialCarePolicy == null)
+            throw new RuntimeException("social care projection is enabled, but input/" + COUNTRY_STRING
+                    + "/social_care_parameters.xlsx was not found - supply the workbook or disable projectSocialCare");
         Object val = socialCarePolicy.getRowColumnValue(year, param);
         if (val == null)
             val = extendSocialCarePolicy(year, param);
@@ -2704,10 +2822,11 @@ public static void putPrevOrNewTarget(int year, Object newTarget, TimeSeriesVari
     private static void setMapBounds(MapBounds map, String countryString) {
 
         String rgn = switch (countryString) {
-            case "EL" -> countryString + "3";
-            case "HU" -> countryString + "C";
-            case "IT" -> countryString + "C";
-            case "PL" -> countryString + "2";
+            case "EL" -> "EL3";
+            case "HU" -> "HUC";
+            case "IT" -> "ITC";
+            case "PL" -> "PL2";
+            case "ES" -> "ES5";
             default -> null;
         };
 
@@ -2824,6 +2943,21 @@ public static void putPrevOrNewTarget(int year, Object newTarget, TimeSeriesVari
                     else if (year >= 2016 && year < 2018)   spa = 61;
                     else if (year >= 2018 )                 spa = 60;
                 }
+                break;
+
+            case "ES":                                      // Spain
+                // Men and women: ordinary pension age gradually rises
+                // from 65 before 2013 to 67 from 2027.
+                //
+                // Spain's statutory ages are specified in years and months.
+                // As spa stores integer years, ages are rounded to the
+                // nearest whole year:
+                // 2005–2017: 65
+                // 2018–2023: 66
+                // 2024+:     67
+                if      (year >= 2005 && year < 2018)       spa = 65;
+                else if (year >= 2018 && year < 2024)       spa = 66;
+                else if (year >= 2024)                      spa = 67;
                 break;
 
             case "EL":                                      // Greece
