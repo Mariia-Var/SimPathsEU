@@ -2083,7 +2083,7 @@ public class BenefitUnit implements EventListener, IDoubleSource, Weight, Compar
         FemaleLeisure_dnc02,
         MaleLeisure_ChildAge2,      //Male leisure interacted with dummy for presence of children aged 0-2 (ES)
         FemaleLeisure_ChildAge2,    //Female leisure interacted with dummy for presence of children aged 0-2 (ES)
-        // ES labour supply (input/ES/do-files_LS_ES_NEW). Suffix = alternative, coded 10 x male band + female band (bands 0-5)
+        // ES labour supply (input_processing/labour_supply/ES/do-files). Suffix = alternative, coded 10 x male band + female band (bands 0-5)
         FullFixedCost_Male,         //1 if male works 40+ hours
         FullFixedCost_Female,       //1 if female works 40+ hours
         PartFixedCost_Male,         //1 if male works 1-39 hours
@@ -2332,7 +2332,7 @@ public class BenefitUnit implements EventListener, IDoubleSource, Weight, Compar
      *   eduDehC4Medium_k, eduDehC4High_k              1 if education is Medium (deh 3-4), High (deh 5)    (adult children)
      *   eduDehC4{Medium,High}_{Male,Female}_k         the same, for the named partner                     (couples)
      *
-     * Definitions follow the ES labour-supply estimation (input/ES/do-files_LS_ES_NEW); the Couples sheet
+     * Definitions follow the ES labour-supply estimation (input_processing/labour_supply/ES/do-files); the Couples sheet
      * currently has the High terms only.
      */
     private record EsLabourChoiceRegressor(String variable, Gender gender, int maleBand, int femaleBand) {

@@ -3872,7 +3872,7 @@ public class Person implements EventListener, IDoubleSource, IIntSource, Weight,
     }
 
     /**
-     * Parental regressors of the education processes, as in input/ES/do_files_reg_estim/01_reg_education_ES.do:
+     * Parental regressors of the education processes, as in 01_reg_education_ES.do (the ES education estimation, not in this repository):
      * Parents_known is a mother or father in the same household; parents' income is asinh of the sum, in levels,
      * of their ypnbihs_dv (Stata: asinh(sinh(m)+sinh(f)) with rowtotal, so a missing income is skipped).
      * Called from updateLaggedVariables, before this year's incomes are computed, so it holds t-1 values.
