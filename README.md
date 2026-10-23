@@ -8,7 +8,7 @@ The entire SimPaths documentation is available on its [website](https://simpaths
 
 ## Introduction
 
-SimPaths is a family of models for individual and household life course events, all sharing common components. The framework is designed to project life histories through time, building up a detailed picture of career paths, family (inter)relations, health, and financial circumstances. The framework builds upon standardised assumptions and data sources, which facilitates adaptation to alternative countries. This repository, **SimPathsEU**, covers Greece (`EL`), Hungary (`HU`), Italy (`IT`), and Poland (`PL`), and integrates with EUROMOD for tax and benefit policy simulation. Careful attention is paid to model validation, and sensitivity of projections to key assumptions. The modular nature of the SimPaths framework is designed to facilitate analysis of alternative assumptions concerning the tax and benefit system, sensitivity to parameter estimates and alternative approaches for projecting labour/leisure and consumption/savings decisions. 
+SimPaths is a family of models for individual and household life course events, all sharing common components. The framework is designed to project life histories through time, building up a detailed picture of career paths, family (inter)relations, health, and financial circumstances. The framework builds upon standardised assumptions and data sources, which facilitates adaptation to alternative countries. This repository, **SimPathsEU**, covers Greece (`EL`), Hungary (`HU`), Italy (`IT`), Poland (`PL`), and Spain (`ES`), and integrates with EUROMOD for tax and benefit policy simulation. Poland and Spain are maintained in the current version; the Greek, Hungarian and Italian inputs are out of date and do not run at present, and updating them is planned for a future release. Careful attention is paid to model validation, and sensitivity of projections to key assumptions. The modular nature of the SimPaths framework is designed to facilitate analysis of alternative assumptions concerning the tax and benefit system, sensitivity to parameter estimates and alternative approaches for projecting labour/leisure and consumption/savings decisions. 
 
 
 ## License
@@ -43,7 +43,7 @@ We are committed to maintaining transparency and open-source principles in this 
 
 The data used by this project is not freely shareable. If you are interested in accessing the data necessary to run the simulation, get in touch with the repository maintainers for further instructions.
 
-However, please note that _training_ data is provided. It allows the simulation to be run and developed, but results obtained on the basis of the training dataset should not be interpreted, except for the purpose of training and development. 
+However, please note that _training_ data is provided for Poland and Spain. It allows the simulation to be run and developed, but results obtained on the basis of the training dataset should not be interpreted, except for the purpose of training and development. 
 
 
 ### Forking the Repository
@@ -68,7 +68,7 @@ $ mvn clean package
 ... to create two runnable jars for single- and multi-run SimPaths:
 ```
 .
-SimPaths/
+SimPathsEU/
       ...
       |-- multirun.jar
       |-- singlerun.jar
@@ -93,7 +93,7 @@ $ mvn verify -Dit.test=RunSimPathsESIntegrationTest   # run just the Spanish int
 
 `singlerun.jar` runs a single SimPaths simulation and is also the entry point used to build/rebuild the input population database. It takes the following options:
 
-- `-c` Country (e.g. `EL`, `HU`, `IT`, `PL`) — **required for the initial setup**
+- `-c` Country (e.g. `EL`, `ES`, `HU`, `IT`, `PL`) — **required for the initial setup**
 - `-s` Start year
 - `-e` End year
 - `-p` Simulated population size
@@ -102,15 +102,15 @@ $ mvn verify -Dit.test=RunSimPathsESIntegrationTest   # run just the Spanish int
 - `-Setup` perform the setup phase only (build the input population database, then exit)
 - `--rebuild-db` Force a rebuild of `input/input.mv.db` instead of reusing it (headless mode)
 - `--reuse-existing-db` Reuse `input/input.mv.db` if present, otherwise build it (headless mode)
-- `-t` [true/false] use training data subset. When `true`, reads from `input/<COUNTRY>/InitialPopulations/training/` and `input/<COUNTRY>/EUROMODoutput/training/`. When `false` (default), reads from `InitialPopulations/` and `EUROMODoutput/` directly. If `-t` is omitted, an auto-detect kicks in: if `InitialPopulations/<country>/*.csv` is empty, the simulator falls back to training data and prints a console message.
+- `-t` [true/false] use training data subset. When `true`, reads from `input/<COUNTRY>/InitialPopulations/training/` and `input/<COUNTRY>/EUROMODoutput/training/`. When `false` (default), reads from `InitialPopulations/` and `EUROMODoutput/` directly. If `-t` is omitted, an auto-detect kicks in: if `input/<COUNTRY>/InitialPopulations/*.csv` is empty, the simulator falls back to training data and prints a console message.
 
-**Important:** the country (`-c`) and start year (`-s`) must be specified when creating or rebuilding the input population database — the resulting `input/input.mv.db` is country- and year-specific.
+**Important:** the country (`-c`) must be specified when creating or rebuilding the input population database: `input/input.mv.db` is specific to one country and to training or actual data. It holds the starting populations of every allowed start year, so a different `-s` does not need a rebuild. Setup also records the country and start year in `input/DatabaseCountryYear.xlsx`, which `multirun.jar` uses as its defaults.
 
 **Important — switching between training and actual data:** `reuseExistingDatabase = true` (the default for headless `singlerun`) reuses `input/input.mv.db` *without* checking which mode it was built in. If you switch the `-t` flag (e.g. from `false` to `true`), you **must** also pass `--rebuild-db` (or `-Setup`) — otherwise the simulation silently runs against a stale DB built from the other dataset.
 
 Typical workflows:
 ```
-# 1. Build (or rebuild) input.mv.db for a given country/start year.
+# 1. Build (or rebuild) input.mv.db for a given country (and record it, with the start year, in DatabaseCountryYear.xlsx).
 #    Both commands below rebuild the database identically — pick ONE,
 #    based on what you want to happen after the rebuild finishes:
 #
@@ -151,18 +151,18 @@ For multiple runs, `multirun.jar` takes the following options:
 - `-g` [true/false] show/hide gui
 - `-f` write console output and logs to file (in 'output/logs/run_[seed].txt')
 - `-config <file>` use a custom YAML config from `config/` instead of `default.yml`
-- `-DBSetup` build the input population database for the configured country/start year, then exit
+- `-DBSetup` build the input population database for the configured country, then exit
 - `-t` [true/false] use training data subset (same semantics as for `singlerun`). Overrides `parameter_args.trainingFlag` from the YAML config. The same caveat applies: if you switch `-t`, also rebuild the DB with `-DBSetup` before running the multirun.
 
-**Note:** `multirun.jar` does **not** take a `-c` country flag — it resolves the country from `input/DatabaseCountryYear.xlsx`. Make sure that file reflects the country you intend to run.
+**Note:** `multirun.jar` does **not** take a `-c` country flag. It runs the country named by `countryString` in the YAML config (e.g. `countryString: "Spain"`) or, if the config sets none, the country recorded in `input/DatabaseCountryYear.xlsx` by the last `singlerun.jar` setup. `multirun.jar -DBSetup` does not update that file, so to switch country either run `singlerun.jar -c <CC> -Setup` or set `countryString`.
 
 **Before running multiruns:**
-1. Ensure `input/DatabaseCountryYear.xlsx` is populated with the country/year combination you intend to run — multirun reads it to resolve the country and start year.
-2. Rebuild the input database whenever it needs to be refreshed (especially when changing the start year). A different population size alone does not require a rebuild: the processed starting population is resampled to match the requested size.
+1. Make sure the country is the one you intend to run (see the note above). The default start year also comes from `input/DatabaseCountryYear.xlsx`, unless `-s` or `startYear` in the config is given.
+2. Rebuild the input database after changing country, switching `-t`, or changing the initial-population or EUROMOD files. A different start year or population size does not require a rebuild: the first run with a given country, start year and population size prepares its starting population and saves it in the database, and later runs reuse it. For the same reason, rebuild after changing code that prepares the starting population, or the saved version is used.
 
 Typical multirun workflow:
 ```
-# 1. (Re)build the input database for the configured country/start year
+# 1. (Re)build the input database for the configured country
 $ java -jar multirun.jar -DBSetup -s 2011 -g false
 
 # 2. Run N simulations over a year range
@@ -183,17 +183,21 @@ Run `java -jar singlerun.jar -h` or `java -jar multirun.jar -h` to show these he
 
 #### Output layout
 
-Each simulation writes a timestamped subdirectory under `output/` (named `YYYYMMDDHHMMSS`), e.g.:
+Each simulation writes timestamped subdirectories under `output/` (named `YYYYMMDDHHMMSS`). For a multirun:
 
 ```
 output/
-├── <YYYYMMDDHHMMSS>/            # one run's artefacts
-│   ├── database/                # H2 snapshot of the simulated population
-│   └── input/                   # copy of the inputs used for the run (for reproducibility)
+├── <YYYYMMDDHHMMSS>/              # CSV output of the whole multirun
+│   └── csv/                       # statistics CSVs, Person/BenefitUnit/Household.csv, and
+│                                  # README.md recording the run configuration
+├── <YYYYMMDDHHMMSS>_<seed>_<n>/   # one folder per run
+│   └── database/                  # H2 snapshot of the simulated population
 └── logs/
-    ├── run_<seed>.txt           # console log when multirun is invoked with -f
-    └── run_<seed>.log           # logger output for the same run
+    ├── run_<seed>.txt             # console log when multirun is invoked with -f
+    └── run_<seed>.log             # logger output for the same run
 ```
+
+Every run of a multirun writes its CSVs to the same `csv/` folder; the `run` column tells them apart.
 
 Batch scripts in `scripts/` move each scenario's outputs into `output/<scenario-name>/` after the runs finish.
 
@@ -201,7 +205,7 @@ Batch scripts in `scripts/` move each scenario's outputs into `output/<scenario-
 ### Batch scenario scripts
 
 Helper Bash scripts in `scripts/` run `multirun.jar` across multiple alignment configs in sequence and move each scenario's output into `output/<scenario-name>/`:
-- `run_alignment_multiruns.sh` — full set of alignment scenarios
+- `run_alignment_multiruns.sh` — alignment scenarios `00`–`04` (`config/alignment_*.yml`; `05` is not included). These configs set no country, so the scenarios run the country recorded in `input/DatabaseCountryYear.xlsx`.
 
 
 Defaults (start/end year, population size, runs per scenario, JVM heap, random seed) are set at the top of each script and can be overridden via environment variables, e.g.:
