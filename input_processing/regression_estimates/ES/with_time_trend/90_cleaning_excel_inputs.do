@@ -1,99 +1,136 @@
 ****************************************************
-* Clean regression Excel workbooks (no overwrite)
-* Output: OUTPUT_DIR/<original filename>.xlsx
+* Clean the regression Excel workbooks in place
 *
-* For each workbook:
-*   - Copies sheets: Info, Gof (if present)
-*   - Cleans model sheets (drops empty rows / empty columns)
-*   - Writes via putexcel with explicit nformat so decimals show in Excel
+* Reads each workbook from $dir_work, where 01-10 save it, and replaces it
+* there with the cleaned version:
+*   - Info, Gof (if present) are copied cell by cell, unchanged
+*   - model sheets: empty rows and empty columns are dropped
+*   - any other sheet (e.g. E2a_raw, H1_raw) is not carried over; the raw
+*     results are also saved under $dir_raw_results
+* The cleaned workbook is written to a temporary file first and only then
+* copied over the original, so a failure leaves the original intact.
+*
+* Run from 00_master_regression_estimates_ES.do, which sets $dir_work.
 ****************************************************
 clear all
 set more off
 
+if `"$dir_work"' == "" {
+    di as err "Global dir_work is not set: run this file from 00_master_regression_estimates_ES.do"
+    exit 198
+}
+
 /****************************************************
-* Helper: write current dataset to a sheet via putexcel
+* Helper: write current dataset to a sheet
+*   mode replace: start a new workbook; modify: add the sheet to it
+*   header: row 1 holds the column headers and the data start in row 2.
+*           The headers are the variable labels, which import excel firstrow
+*           sets to the original header text (the variable name if unset).
+*   otherwise the data start in row 1 (sheet imported without firstrow).
+* Cells are written through Mata's xl() class, so text containing quotes or
+* macro characters is written as is. Empty cells are left empty.
 ****************************************************/
 capture program drop _write_sheet
 program define _write_sheet
-    syntax, file(string) sheet(string) mode(string)
+    syntax, file(string) sheet(string) mode(string) [header]
+    mata: _write_sheet_xl(`"`file'"', `"`sheet'"', "`mode'" == "replace", "`header'" != "")
+end
 
-    putexcel set "`file'", sheet("`sheet'") `mode'
+mata:
+void _write_sheet_xl(string scalar file, string scalar sheet,
+                     real scalar newbook, real scalar header)
+{
+    class xl scalar b
+    real scalar j, i, first
+    string scalar h
+    real colvector x
+    string colvector s
 
-    local col = 0
-    foreach v of varlist _all {
-        local ++col
-        mata: st_local("L", numtobase26(`col'))
-        putexcel `L'1 = ("`v'")
-        if `=_N' == 0 continue
+    b = xl()
+    if (newbook) {
+        if (fileexists(file)) unlink(file)
+        b.create_book(file, sheet, "xlsx")
+    }
+    else {
+        b.load_book(file)
+        b.add_sheet(sheet)
+    }
+    b.set_sheet(sheet)
+    b.set_mode("open")
 
-        capture confirm numeric variable `v'
-        if !_rc {
-            tempname M
-            mata: st_matrix("`M'", st_data(., "`v'"))
-            putexcel `L'2 = matrix(`M')
+    first = header ? 2 : 1
+    for (j = 1; j <= st_nvar(); j++) {
+        if (header) {
+            h = st_varlabel(j)
+            if (h == "") h = st_varname(j)
+            b.put_string(1, j, h)
+        }
+        if (st_isnumvar(j)) {
+            x = st_data(., j)
+            for (i = 1; i <= rows(x); i++) {
+                if (x[i] < .) b.put_number(i + first - 1, j, x[i])
+            }
         }
         else {
-            forvalues i = 1/`=_N' {
-                if `v'[`i'] != "" putexcel `L'`=`i'+1' = ("`=`v'[`i']'")
+            s = st_sdata(., j)
+            for (i = 1; i <= rows(s); i++) {
+                if (s[i] != "") b.put_string(i + first - 1, j, s[i])
             }
         }
     }
-    putexcel close
+    b.close_book()
+}
 end
 
 /****************************************************
 * USER SETTINGS
 ****************************************************/
-local country    "ES"
-local INPUT_DIR  "$dir_work/reg_estimates_`country'_toClean"
-local OUTPUT_DIR "$dir_work/reg_estimates_`country'_Cleaned"
-local EXT        "xlsx"
-
-capture mkdir "`OUTPUT_DIR'"
+local DIR "$dir_work"
 
 local passthrough "Info Gof"
 
 local workbooks ///
-"reg_education reg_health reg_partnership reg_fertility reg_home_ownership reg_leave_parental_home reg_retirement reg_income reg_wages reg_labourSupplyUtility reg_RMSE reg_employmentSelection"
+"reg_education reg_leave_parental_home reg_partnership reg_fertility reg_health reg_home_ownership reg_retirement reg_wages reg_employmentSelection reg_income reg_RMSE scenario_parametricMatching"
 
 foreach wb of local workbooks {
     di as txt "--------------------------------------------"
     di as txt "Processing workbook: `wb'"
     di as txt "--------------------------------------------"
 
-    * Try without suffix first, then with _`country' suffix
-    local infile ""
-    capture confirm file "`INPUT_DIR'/`wb'.`EXT'"
-    if !_rc local infile "`INPUT_DIR'/`wb'.`EXT'"
-    else {
-        capture confirm file "`INPUT_DIR'/`wb'_`country'.`EXT'"
-        if !_rc {
-            local infile "`INPUT_DIR'/`wb'_`country'.`EXT'"
-            di as txt "  Found with country suffix: `wb'_`country'.`EXT'"
-        }
-    }
+    local file    "`DIR'/`wb'.xlsx"
+    local tmpfile "`DIR'/`wb'_cleaning_tmp.xlsx"
 
-    if "`infile'" == "" {
-        di as err "WARNING: Input file not found (`wb'.`EXT' or `wb'_`country'.`EXT') -> skipping"
+    capture confirm file "`file'"
+    if _rc {
+        di as err "WARNING: `file' not found -> skipping"
         continue
     }
 
-    local outfile "`OUTPUT_DIR'/`wb'.`EXT'"
-
     * Define model sheets for each workbook
     local models ""
-    if "`wb'" == "reg_education"           local models "E1a E1b E2a"
-    if "`wb'" == "reg_health"              local models "H1 H2"
-    if "`wb'" == "reg_partnership"         local models "U1 U2"
-    if "`wb'" == "reg_fertility"           local models "F1"
-    if "`wb'" == "reg_home_ownership"      local models "HO1"
-    if "`wb'" == "reg_leave_parental_home" local models "P1"
-    if "`wb'" == "reg_retirement"          local models "R1a R1b"
-    if "`wb'" == "reg_income"              local models "I1a I1b"
-    if "`wb'" == "reg_wages"               local models "W1fa W1ma W1fb W1mb"
-    if "`wb'" == "reg_labourSupplyUtility" local models "Single_female Single_male SingleDep_Females SingleDep_Males Couples SingleAC_Females SingleAC_Males"
-    if "`wb'" == "reg_RMSE"                local models "RMSE"
-    if "`wb'" == "reg_employmentSelection" local models "W1fa-sel W1ma-sel W1fb-sel W1mb-sel"
+    if "`wb'" == "reg_education"               local models "E1a E1b E2a"
+    if "`wb'" == "reg_health"                  local models "H1 H2"
+    if "`wb'" == "reg_partnership"             local models "U1 U2"
+    if "`wb'" == "reg_fertility"               local models "F1"
+    if "`wb'" == "reg_home_ownership"          local models "HO1"
+    if "`wb'" == "reg_leave_parental_home"     local models "P1"
+    if "`wb'" == "reg_retirement"              local models "R1a R1b"
+    if "`wb'" == "reg_income"                  local models "I1a I1b"
+    if "`wb'" == "reg_wages"                   local models "W1fa W1ma W1fb W1mb"
+    if "`wb'" == "reg_employmentSelection"     local models "W1fa-sel W1ma-sel W1fb-sel W1mb-sel"
+    if "`wb'" == "reg_RMSE"                    local models "RMSE"
+    if "`wb'" == "scenario_parametricMatching" local models "Parameters"
+
+    * Sheets in the workbook, and those that are not carried over
+    quietly import excel using "`file'", describe
+    local nsheets = r(N_worksheet)
+    local sheets ""
+    forvalues k = 1/`nsheets' {
+        local sheets "`sheets' `r(worksheet_`k')'"
+    }
+    local keep "`passthrough' `models'"
+    local dropped : list sheets - keep
+    if "`dropped'" != "" di as txt "  Not carried over: `dropped'"
 
     local started = 0
 
@@ -101,15 +138,18 @@ foreach wb of local workbooks {
     * A) Copy Info + Gof unchanged
     **********************/
     foreach s of local passthrough {
-        capture noisily import excel "`infile'", sheet("`s'") firstrow clear
-        if _rc {
+        local present : list s in sheets
+        if !`present' {
             di as txt "  Passthrough sheet `s' not found -> skipping"
             continue
         }
+        * No firstrow, so the first row is copied as data, not turned into variable names
+        quietly import excel using "`file'", sheet("`s'") cellrange(A1) clear
         local mode = cond(`started', "modify", "replace")
-        capture noisily _write_sheet, file("`outfile'") sheet("`s'") mode("`mode'")
+        capture noisily _write_sheet, file("`tmpfile'") sheet("`s'") mode("`mode'")
         if _rc {
-            di as err "ERROR: Could not save `outfile' (close Excel / check permissions)."
+            di as err "ERROR: Could not save `tmpfile' (close Excel / check permissions). `file' left unchanged."
+            capture erase "`tmpfile'"
             exit 603
         }
         local started = 1
@@ -119,21 +159,20 @@ foreach wb of local workbooks {
     * B) Clean model sheets
     **********************/
     foreach s of local models {
-        di as txt "  Cleaning sheet: `s'"
-
-        capture noisily import excel "`infile'", sheet("`s'") firstrow clear
-        if _rc {
-            di as err "    -> Could not import sheet `s' from `infile' (skipping)"
+        local present : list s in sheets
+        if !`present' {
+            di as err "    -> Sheet `s' not found in `file' (skipping)"
             continue
         }
+        di as txt "  Cleaning sheet: `s'"
 
-        * Drop empty rows (missing() handles both numeric and string)
-        gen byte __keep = 0
-        foreach v of varlist _all {
-            replace __keep = 1 if !missing(`v')
-        }
-        drop if __keep == 0
-        drop __keep
+        quietly import excel using "`file'", sheet("`s'") cellrange(A1) firstrow clear
+
+        * Drop empty rows (strok counts non-empty strings as well as numbers)
+        unab allvars : _all
+        egen __nonmiss = rownonmiss(`allvars'), strok
+        drop if __nonmiss == 0
+        drop __nonmiss
 
         * Drop empty columns
         foreach v of varlist _all {
@@ -142,16 +181,24 @@ foreach wb of local workbooks {
         }
 
         local mode = cond(`started', "modify", "replace")
-        capture noisily _write_sheet, file("`outfile'") sheet("`s'") mode("`mode'")
+        capture noisily _write_sheet, file("`tmpfile'") sheet("`s'") mode("`mode'") header
         if _rc {
-            di as err "ERROR: Could not save `outfile' (close Excel / check permissions)."
+            di as err "ERROR: Could not save `tmpfile' (close Excel / check permissions). `file' left unchanged."
+            capture erase "`tmpfile'"
             exit 603
         }
         local started = 1
     }
 
-    if `started' == 0 di as err "No sheets exported for `wb'."
-    else di as res "Done: `outfile'"
+    if `started' == 0 {
+        di as err "No sheets exported for `wb' -> `file' left unchanged."
+        continue
+    }
+
+    * Replace the original with the cleaned workbook
+    copy "`tmpfile'" "`file'", replace
+    erase "`tmpfile'"
+    di as res "Done: `file'"
 }
 
 di as res "All done."
