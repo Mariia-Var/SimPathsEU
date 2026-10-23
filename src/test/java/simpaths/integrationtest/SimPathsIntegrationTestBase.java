@@ -38,8 +38,8 @@ import simpaths.model.enums.Country;
  * </pre>
  *
  * <p>Training-data baselines are committed (shareable data, CI-ready); real-data
- * baselines are gitignored and captured locally per developer. See each
- * {@code expected*} folder's README.
+ * baselines are gitignored and captured locally per developer. See
+ * {@code INTEGRATION_TEST_REGENERATION.md} in each {@code expected*} folder.
  *
  * Flow (ordered):
  *   1. Build a fresh input database from the EU inputs via {@code multirun.jar -DBSetup}

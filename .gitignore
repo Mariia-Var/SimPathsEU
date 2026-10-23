@@ -252,7 +252,7 @@ input/tax_donor_population_ES.csv
 # Integration-test golden CSVs for the REAL-DATA baselines — generated locally
 # per developer because real EUROMOD input data is not shareable. Do not commit.
 # The TRAINING-DATA baselines under expected_training_<CC>/ ARE committed and are
-# what CI diffs against. See each folder's README.md for details.
+# what CI diffs against. See each folder's INTEGRATION_TEST_REGENERATION.md for details.
 src/test/java/simpaths/integrationtest/expected_PL/*.csv
 src/test/java/simpaths/integrationtest/expected_ES/*.csv
 !src/test/java/simpaths/integrationtest/expected_training_PL/*.csv

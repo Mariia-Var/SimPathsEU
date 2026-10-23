@@ -10,9 +10,13 @@ each developer must capture a local baseline against their own input data
 before making behavioural changes.
 
 > For the **training-data baseline** (committed, CI-ready, and the default), see
-> [`../expected_training_PL/README.md`](../expected_training_PL/README.md).
-> Spain follows the identical convention under [`../expected_ES/`](../expected_ES/README.md)
-> and [`../expected_training_ES/`](../expected_training_ES/README.md).
+> [`../expected_training_PL/INTEGRATION_TEST_REGENERATION.md`](../expected_training_PL/INTEGRATION_TEST_REGENERATION.md).
+> Spain follows the identical convention under [`../expected_ES/`](../expected_ES/INTEGRATION_TEST_REGENERATION.md)
+> and [`../expected_training_ES/`](../expected_training_ES/INTEGRATION_TEST_REGENERATION.md).
+
+This file is deliberately not called `README.md`, so that the `README.md` every
+simulation run writes beside its CSVs cannot overwrite it if a whole output folder is
+copied here.
 
 ## When to use this test
 

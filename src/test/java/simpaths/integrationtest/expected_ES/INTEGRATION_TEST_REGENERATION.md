@@ -9,9 +9,13 @@ real EU-SILC / EUROMOD inputs are not shareable — each developer captures a lo
 baseline against their own input data before making behavioural changes.
 
 > For the **training-data baseline** (committed, CI-ready, and the default), see
-> [`../expected_training_ES/README.md`](../expected_training_ES/README.md). Poland
-> follows the identical convention under [`../expected_PL/`](../expected_PL/README.md)
-> and [`../expected_training_PL/`](../expected_training_PL/README.md).
+> [`../expected_training_ES/INTEGRATION_TEST_REGENERATION.md`](../expected_training_ES/INTEGRATION_TEST_REGENERATION.md). Poland
+> follows the identical convention under [`../expected_PL/`](../expected_PL/INTEGRATION_TEST_REGENERATION.md)
+> and [`../expected_training_PL/`](../expected_training_PL/INTEGRATION_TEST_REGENERATION.md).
+
+This file is deliberately not called `README.md`, so that the `README.md` every
+simulation run writes beside its CSVs cannot overwrite it if a whole output folder is
+copied here.
 
 ## Capturing the baseline locally
 
@@ -40,11 +44,11 @@ baseline against their own input data before making behavioural changes.
 
 ## Caveat on the numbers
 
-See [`../expected_training_ES/README.md`](../expected_training_ES/README.md#caveat-on-the-numbers):
-several ES inputs are still Polish clones, so ES levels are not yet meaningful. The
-test pins reproducibility, not correctness.
+See [`../expected_training_ES/INTEGRATION_TEST_REGENERATION.md`](../expected_training_ES/INTEGRATION_TEST_REGENERATION.md#caveat-on-the-numbers):
+some ES inputs are not final yet (see "Still outstanding" in the Spain section of
+`CLAUDE.md`). The test pins reproducibility, not correctness.
 
 ## Comparison rules
 
 Same hybrid tolerance as every other baseline — see
-[`../expected_PL/README.md`](../expected_PL/README.md#comparison-rules).
+[`../expected_PL/INTEGRATION_TEST_REGENERATION.md`](../expected_PL/INTEGRATION_TEST_REGENERATION.md#comparison-rules).
