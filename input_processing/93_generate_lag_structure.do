@@ -4,10 +4,10 @@
 * OBJECT:       Generate comprehensive lag-structure workbook – all processes
 *
 * INPUT:        input/{country}/reg_*.xlsx (the regression workbooks the model loads)
-* OUTPUT FILE:  documentation/SimPaths_lag_structure_full_{country}.xlsx
+* OUTPUT FILE:  documentation/SimPaths_lag_structure_{country}.xlsx
 *
 * USAGE:        run from the repository root or from input_processing/, e.g.
-*                 do input_processing/93_generate_lag_structure_full.do ES
+*                 do input_processing/93_generate_lag_structure.do ES
 *               Without an argument, the country in USER SETTINGS is used.
 *
 * SHEETS:
@@ -23,7 +23,7 @@
 *   l2   second-order lag (_L2 suffix or L2_ prefix)
 *
 * COLUMNS:  one column per model, in the order of the yearly schedule
-*   (documentation/SimPathsEU_ScheduleNEW.xlsx, sheet "Schedule IO disabled"):
+*   (documentation/SimPathsEU_Schedule.xlsx, sheet "Schedule IO disabled"):
 *   R1a R1b | E1a E1b E2a | P1 | HO1 | H1 H2 |
 *   W1fa W1ma W1fb W1mb W1fa_sel W1ma_sel W1fb_sel W1mb_sel | U1 U2 | F1 |
 *   I1a I1b | Single_female…SingleAC_Males   (RMSE excluded)
@@ -1018,7 +1018,7 @@ putexcel B16 = "Variables collapsed to one row per conceptual group, combining t
 putexcel A17 = "grouped_strict"
 putexcel B17 = "Same conceptual grouping as the grouped sheet, but rows are only merged when ALL lag values are identical across every model column. Rows with different lag patterns within the same conceptual group remain as separate rows. Columns A-B show the combined covariate codes and descriptions of the merged variables."
 putexcel A18 = "schedule_check"
-putexcel B18 = "Timing audit of every (model, covariate) pair that uses a current-period value (lag = c), comparing the position in the yearly schedule of the step that runs the model with the step that produces the covariate. Positions follow documentation/SimPathsEU_ScheduleNEW.xlsx (Order EU), with the order inside a step where it matters (H1 before H2; W1*-sel before W1*; I1a/I1b before labour supply). Flags: CHECK = producer runs later, so the c value still holds last year's value; same step = producer and consumer in the same step; OK = producer runs earlier; exogenous = not produced by a behavioural process (age, gender, region, macro, pension age); choice-specific = evaluated for each hours alternative inside the labour-supply step."
+putexcel B18 = "Timing audit of every (model, covariate) pair that uses a current-period value (lag = c), comparing the position in the yearly schedule of the step that runs the model with the step that produces the covariate. Positions follow documentation/SimPathsEU_Schedule.xlsx (Order EU), with the order inside a step where it matters (H1 before H2; W1*-sel before W1*; I1a/I1b before labour supply). Flags: CHECK = producer runs later, so the c value still holds last year's value; same step = producer and consumer in the same step; OK = producer runs earlier; exogenous = not produced by a behavioural process (age, gender, region, macro, pension age); choice-specific = evaluated for each hours alternative inside the labour-supply step."
 putexcel A19 = "notes"
 putexcel B19 = "This sheet."
 
@@ -1094,7 +1094,7 @@ foreach spec in ///
   (current-period value), this sheet compares the position in the yearly
   schedule of the step running the model with the step producing the
   covariate. Positions are the Order EU numbers of
-  documentation/SimPathsEU_ScheduleNEW.xlsx; seq orders models inside a step.
+  documentation/SimPathsEU_Schedule.xlsx; seq orders models inside a step.
 
     Order EU  step                              models
      5        Updated persons                   (Parents_known lag)
@@ -1210,7 +1210,7 @@ drop flag_sort consumer_key producer_key
 putexcel set "`OUTPUT_FILE'", sheet("schedule_check") modify
 
 putexcel A1 = "Schedule vs. lag-usage check", bold
-putexcel A2 = "Shows every (process, covariate) pair where a current-period value (lag = c) is used. The flag compares the schedule position (Order EU in documentation/SimPathsEU_ScheduleNEW.xlsx) of the step running the model with that of the step producing the covariate."
+putexcel A2 = "Shows every (process, covariate) pair where a current-period value (lag = c) is used. The flag compares the schedule position (Order EU in documentation/SimPathsEU_Schedule.xlsx) of the step running the model with that of the step producing the covariate."
 putexcel A3 = "Flag meanings:   CHECK = producer runs AFTER consumer (c still holds last year's value);   same step = producer and consumer at the same schedule position;   OK = producer runs before consumer;   exogenous = not produced by any behavioural process;   choice-specific = evaluated per hours alternative in the labour-supply step."
 
 putexcel A5 = "Covariate code",    bold
