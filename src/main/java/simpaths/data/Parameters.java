@@ -198,6 +198,8 @@ public class Parameters {
     public static double MAX_HOURS_WEEKLY_INFORMAL_CARE = 16 * 7;
     public static double CHILDCARE_COST_EARNINGS_CAP = 0.5;  // maximum share of earnings payable as childcare (for benefit units with some earnings)
 
+    // thresholds of the tax-donor key function (KeyFunctionHU2); setup reads them from parameters.xlsx itself (loadSetupParameters),
+    // so that donors and simulated benefit units are keyed on the same values
     public static double KEY_FUNCTION_HU2_HI_INCOME = 287.0; // 67th percentile observed in the EM data for 2018
     public static double KEY_FUNCTION_HU2_LO_INCOME = 140.0; // 33rd percentile observed in the EM data for 2018
     public static int KEY_FUNCTION_HU2_MID_AGE = 45;
@@ -3226,11 +3228,37 @@ public static void putPrevOrNewTarget(int year, Object newTarget, TimeSeriesVari
         return val;
     }
 
+    // parameters.xlsx keys that setup reads itself (loadSetupParameters)
+    private static final Set<String> SETUP_PARAMETERS = Set.of(
+            "KEY_FUNCTION_HU2_HI_INCOME", "KEY_FUNCTION_HU2_LO_INCOME", "KEY_FUNCTION_HU2_MID_AGE", "KEY_FUNCTION_HU2_INCOME_REF_YEAR");
+
+    /**
+     * Setup builds the input database before the model loads parameters.xlsx (loadParameters), so it reads the keys
+     * it needs from the workbook itself: the KEY_FUNCTION_HU2_* thresholds with which
+     * TaxDonorDataParser.populateDonorTaxUnitTables gives each donor its matching keys. Simulated benefit units get
+     * their keys after loadParameters, so without this the two sides of the match would use different thresholds
+     * wherever the workbook differs from the Java defaults (as ES's does).
+     */
+    private static void loadSetupParameters(Country country) {
+        MultiKeyCoefficientMap workbook = ExcelAssistant.loadCoefficientMap(resolveCountryFile(country, "parameters.xlsx"), "Parameters", 1);
+        Map<MultiKey<?>, Object> setupParameters = new HashMap<>();
+        for (Object entryObject : workbook.entrySet()) {
+            Map.Entry<?, ?> entry = (Map.Entry<?, ?>) entryObject;
+            MultiKey<?> key = (MultiKey<?>) entry.getKey();
+            if (SETUP_PARAMETERS.contains(key.getKey(0).toString()))
+                setupParameters.put(key, entry.getValue());
+        }
+        ParametersLoader.setParametersFromMap(setupParameters);
+    }
+
     public static void databaseSetup(Country country, boolean executeWithGui, int startYear) {
 
         // remove database file if it exists
         String filePath = "./input" + File.separator + "input.mv.db";
         safeDelete(filePath);
+
+        // parameters.xlsx keys needed before loadParameters
+        loadSetupParameters(country); // KEY_FUNCTION_HU2_* for the donor keys
 
         // populate new database for starting data
         loadMinHoursEmployed(country); // used by DataParser.marginalEmploymentRecode
