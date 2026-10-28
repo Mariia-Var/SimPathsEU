@@ -10,7 +10,7 @@ SimPaths is a JAS-mine-based microsimulation model that projects individual and 
 
 **A missing workbook fails late.** JAS-mine's `ExcelAssistant.loadCoefficientMap` catches `FileNotFoundException`, prints the stack trace and returns `null`. The failure then surfaces as a `NullPointerException` far from its cause, so look for a `FileNotFoundException` earlier in the console first.
 
-**`input/<CC>/parameters.xlsx` overrides Java defaults.** `Parameters.loadParameters` reads its `Parameters` sheet and sets the static field of the same name (`ParametersLoader.setParametersFromMap`), so the workbook value wins over the default in `Parameters.java`. Change both together.
+**`input/<CC>/parameters.xlsx` overrides Java defaults.** `Parameters.loadParameters` reads its `Parameters` sheet and sets the static field of the same name (`ParametersLoader.setParametersFromMap`), so the workbook value wins over the default in `Parameters.java`. Change both together. Setup (`Parameters.databaseSetup`) runs before `loadParameters` and does not read the workbook, except the `KEY_FUNCTION_HU2_*` thresholds, which `loadSetupParameters` reads so that the donor keys built at setup use the same thresholds as the simulated benefit units (ES's differ from the Java defaults). They are applied when the input DB is built, so rebuild the DB after changing them.
 
 ### Spain (ES)
 
