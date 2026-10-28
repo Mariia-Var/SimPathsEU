@@ -163,13 +163,13 @@ public class Parameters {
     public static String COUNTRY_STRING = "";
 
     public static int MIN_AGE_TO_HAVE_INCOME = 16; //Minimum age to have non-employment non-benefit income
-    public static int MAX_LABOUR_HOURS_IN_WEEK = 84;
+    public static int MAX_LABOUR_HOURS_IN_WEEK = 80; // weekly hours cap; must equal the upper limit of the country's top band in Labour (checkLabourBandLimits)
     public static int HOURS_IN_WEEK = 24*7; // currently, 24 hours per day is used to calculate leisure in labour supply
     public static boolean USE_CONTINUOUS_LABOUR_SUPPLY_HOURS = true; // If true, a random number of hours of weekly labour supply within each bracket will be generated. Otherwise, each discrete choice of labour supply corresponds to a fixed number of hours of labour supply, which is the same for all persons
     public static boolean USE_MIDPOINT_HOURS = false; // Applies only to realised hours of brackets that do not spread hours (Labour.spreadsRealisedHours false): if true, they realise at the bracket midpoint (min + max) / 2 instead of their representative hours. Choice-stage (utility) evaluation always uses representative hours for these brackets; brackets that spread hours are unaffected
     public static boolean useRepresentativeHoursInUtility = true; // If true, the labour-supply utility optimisation evaluates each hours bracket at its representative hours (Labour.getRepresentativeHours) rather than at the person's drawn hours; drawn hours apply only once the bracket has been chosen
     public static boolean redrawHoursEachYear = false; // If true, the position of a person's hours within their bracket is redrawn every year (at the labour-supply choice); otherwise one draw is kept for life
-    public static boolean USE_SILC_LHW_DISTRIBUTION_ES = true; // ES only: if true, realised hours in every positive ES band are drawn from the EU-SILC distribution of observed weekly hours (lhw) within that band, for the person's sample type and gender (input/ES/silc_lhw_distribution.xlsx); the top band runs to MAX_LABOUR_HOURS_IN_WEEK. Overrides the per-band spread setting and USE_MIDPOINT_HOURS for ES. Choice-stage evaluation still uses representative hours (useRepresentativeHoursInUtility). If false, ES hours realise as set in Labour
+    public static boolean USE_SILC_LHW_DISTRIBUTION = true; // ES and PL (SILC_LHW_DISTRIBUTION_COUNTRIES): if true, realised hours in every positive band are drawn from the EU-SILC distribution of observed weekly hours (lhw) within that band, for the person's sample type and gender (input/<CC>/silc_lhw_distribution.xlsx); the top band runs to MAX_LABOUR_HOURS_IN_WEEK. Overrides the per-band spread setting and USE_MIDPOINT_HOURS. Choice-stage evaluation still uses representative hours (useRepresentativeHoursInUtility). Ignored for other countries. If false, hours realise as set in Labour
 
     public static int AGE_TO_BECOME_RESPONSIBLE = 18;            // Age become reference person of own benefit unit
     public static int AGE_TO_BECOME_SEMI_RESPONSIBLE = 16;      //Age used in health processes H1, H2
@@ -189,8 +189,9 @@ public class Parameters {
     public static double ANNUITY_RATE_OF_RETURN = 0.015;
 
     public static int MIN_HOURS_FULL_TIME_EMPLOYED = 25;    // used to distinguish full-time from part-time employment (needs to be consistent with Labour enum)
-    public static int MIN_HOURS_EMPLOYED = 6;    // minimum weekly hours to count as employed in the initial population; also the lower bound
-                                                // of Labour.CATEGORY_ES_1, below which ES hours convert to Labour.ZERO
+    public static int MIN_HOURS_EMPLOYED = 1;    // minimum weekly hours to count as employed (ES 6, PL 1): persons employed on fewer hours are recoded to not employed
+                                                // at setup (DataParser.marginalEmploymentRecode; setup reads this key from parameters.xlsx itself, loadMinHoursEmployed),
+                                                // and fewer hours convert to Labour.ZERO. Must equal the lower limit of the country's first positive band in Labour (checkLabourBandLimits)
     public static double MIN_HOURLY_WAGE_RATE = 0.0;
     public static double MAX_HOURLY_WAGE_RATE = 75.0;
     public static double MAX_HOURS_WEEKLY_FORMAL_CARE = 150.0;
@@ -978,6 +979,7 @@ public class Parameters {
 
         countrySpecificParameters = ExcelAssistant.loadCoefficientMap(resolveCountryFile(country, "parameters.xlsx"), "Parameters", 1);
         ParametersLoader.setParametersFromMap(countrySpecificParameters);
+        checkLabourBandLimits(country);
 
         maxAge      = maxAgeModel;
         startYear   = startYearModel;
@@ -995,7 +997,7 @@ public class Parameters {
         COUNTRY_STRING  = country.toString();
         loadTimeSeriesFactorMaps(country);
         setLabourSupplyIncomePriceFactor(country);
-        loadSilcLhwDistributionES(country);
+        loadSilcLhwDistribution(country);
         instantiateAlignmentMaps();
 
         // scenario parameters
@@ -2302,21 +2304,60 @@ public class Parameters {
         return labourSupplyIncomePriceFactor;
     }
 
-    // EU-SILC weekly-hours distributions used when USE_SILC_LHW_DISTRIBUTION_ES is true: cumulative frequency
+    /**
+     * Labour gives its band limits as numbers, so that they do not depend on when the enum is first loaded. Checks that
+     * the country's first positive band starts at MIN_HOURS_EMPLOYED and its top band ends at MAX_LABOUR_HOURS_IN_WEEK,
+     * as read from parameters.xlsx, so that changing only one side fails here instead of being silently ignored.
+     * IT's top band is not checked: it has limits of its own.
+     */
+    private static void checkLabourBandLimits(Country country) {
+        Labour[] bands = Labour.valuesForCountry(country.toString());  // bands[0] is Labour.ZERO
+        Labour first = bands[1];
+        Labour top = bands[bands.length - 1];
+        for (Gender gender : Gender.values()) {
+            if (first.getMinHours(gender) != MIN_HOURS_EMPLOYED)
+                throw new IllegalStateException("MIN_HOURS_EMPLOYED is " + MIN_HOURS_EMPLOYED + " in input/" + country
+                        + "/parameters.xlsx, but Labour." + first + " starts at " + first.getMinHours(gender) + " hours for "
+                        + gender + "; change both together");
+            if (country != Country.IT && top.getMaxHours(gender) != MAX_LABOUR_HOURS_IN_WEEK)
+                throw new IllegalStateException("MAX_LABOUR_HOURS_IN_WEEK is " + MAX_LABOUR_HOURS_IN_WEEK + " in input/" + country
+                        + "/parameters.xlsx, but Labour." + top + " runs to " + top.getMaxHours(gender) + " hours for "
+                        + gender + "; change both together");
+        }
+    }
+
+    /**
+     * Setup builds the starting population before the model loads parameters.xlsx (loadParameters), so it reads
+     * MIN_HOURS_EMPLOYED from the workbook itself: DataParser.marginalEmploymentRecode needs the country's value.
+     */
+    private static void loadMinHoursEmployed(Country country) {
+        MultiKeyCoefficientMap workbook = ExcelAssistant.loadCoefficientMap(resolveCountryFile(country, "parameters.xlsx"), "Parameters", 1);
+        Map<MultiKey<?>, Object> minHours = new HashMap<>();
+        for (Object entryObject : workbook.entrySet()) {
+            Map.Entry<?, ?> entry = (Map.Entry<?, ?>) entryObject;
+            MultiKey<?> key = (MultiKey<?>) entry.getKey();
+            if ("MIN_HOURS_EMPLOYED".equals(key.getKey(0).toString()))
+                minHours.put(key, entry.getValue());
+        }
+        ParametersLoader.setParametersFromMap(minHours);
+    }
+
+    // EU-SILC weekly-hours distributions used when USE_SILC_LHW_DISTRIBUTION is true: cumulative frequency
     // indexed by weekly hours 0..84, keyed by sheet name (sample type and gender, e.g. "Couple_female")
-    private static final String SILC_LHW_DISTRIBUTION_FILE_ES = "silc_lhw_distribution.xlsx";
-    private static final String[] SILC_LHW_SHEETS_ES = {"Single_indep_male", "Single_indep_female", "Couple_male", "Couple_female",
+    private static final Set<Country> SILC_LHW_DISTRIBUTION_COUNTRIES = EnumSet.of(Country.ES, Country.PL);
+    private static final String SILC_LHW_DISTRIBUTION_FILE = "silc_lhw_distribution.xlsx";
+    private static final String[] SILC_LHW_SHEETS = {"Single_indep_male", "Single_indep_female", "Couple_male", "Couple_female",
             "Single_dep_male", "Single_dep_female", "Adult_child_male", "Adult_child_female"};
-    private static Map<String, double[]> silcLhwCumulativeES;
+    private static Map<String, double[]> silcLhwCumulative;
 
-    /** Loads the EU-SILC hours distributions of input/ES (ES with USE_SILC_LHW_DISTRIBUTION_ES only). */
-    private static void loadSilcLhwDistributionES(Country country) {
-        silcLhwCumulativeES = null;
-        if (country != Country.ES || !USE_SILC_LHW_DISTRIBUTION_ES) return;
+    /** Loads the EU-SILC hours distributions of input/<country> (USE_SILC_LHW_DISTRIBUTION, SILC_LHW_DISTRIBUTION_COUNTRIES only). */
+    private static void loadSilcLhwDistribution(Country country) {
+        silcLhwCumulative = null;
+        if (!USE_SILC_LHW_DISTRIBUTION || !SILC_LHW_DISTRIBUTION_COUNTRIES.contains(country)) return;
 
-        silcLhwCumulativeES = new HashMap<>();
-        String file = resolveCountryFile(country, SILC_LHW_DISTRIBUTION_FILE_ES);
-        for (String sheet : SILC_LHW_SHEETS_ES) {
+        silcLhwCumulative = new HashMap<>();
+        String file = resolveCountryFile(country, SILC_LHW_DISTRIBUTION_FILE);
+        for (String sheet : SILC_LHW_SHEETS) {
             MultiKeyCoefficientMap map = ExcelAssistant.loadCoefficientMap(file, sheet, 1);
             // read the frequencies f(h), then turn them in place into the cumulative distribution F(h) = f(0) + ... + f(h)
             double[] cumFreq = new double[85];
@@ -2328,8 +2369,13 @@ public class Parameters {
             }
             for (int h = 1; h < cumFreq.length; h++)
                 cumFreq[h] += cumFreq[h - 1];
-            silcLhwCumulativeES.put(sheet, cumFreq);
+            silcLhwCumulative.put(sheet, cumFreq);
         }
+    }
+
+    /** True when realised hours are drawn from the EU-SILC hours distributions: USE_SILC_LHW_DISTRIBUTION is on and the country has them. */
+    public static boolean useSilcLhwDistribution() {
+        return USE_SILC_LHW_DISTRIBUTION && silcLhwCumulative != null;
     }
 
     /**
@@ -2337,10 +2383,10 @@ public class Parameters {
      * that each hour is drawn with probability equal to its SILC share within the band (hours never observed are
      * never drawn). u is the person's uniform draw. Returns -1 if the band has no SILC frequency.
      */
-    public static int drawSilcLhwHoursES(String sheet, int min, int max, double u) {
-        if (silcLhwCumulativeES == null)
-            throw new IllegalStateException("EU-SILC hours distributions not loaded: USE_SILC_LHW_DISTRIBUTION_ES is set but the country is not ES");
-        double[] cumFreq = silcLhwCumulativeES.get(sheet);
+    public static int drawSilcLhwHours(String sheet, int min, int max, double u) {
+        if (silcLhwCumulative == null)
+            throw new IllegalStateException("EU-SILC hours distributions not loaded: USE_SILC_LHW_DISTRIBUTION is off or the country is not one of " + SILC_LHW_DISTRIBUTION_COUNTRIES);
+        double[] cumFreq = silcLhwCumulative.get(sheet);
         if (cumFreq == null)
             throw new IllegalArgumentException("No EU-SILC hours distribution for sheet " + sheet);
 
@@ -3187,6 +3233,7 @@ public static void putPrevOrNewTarget(int year, Object newTarget, TimeSeriesVari
         safeDelete(filePath);
 
         // populate new database for starting data
+        loadMinHoursEmployed(country); // used by DataParser.marginalEmploymentRecode
         DataParser.databaseFromCSV(country, executeWithGui); // Initial database tables
 
         // populate new database for tax donors

@@ -21,14 +21,14 @@ JVM_HEAP="${JVM_HEAP:-12g}"
 
 CONFIGS=(
   "alignment_00_populationOFF.yml"
-  "alignment_01_population.yml"
-  "alignment_02a_population_fertility.yml"
-  "alignment_02b_population_cohabitation.yml"
-  "alignment_02c_population_disability.yml"
-  "alignment_02d_population_inschool.yml"
-  "alignment_02e_population_retirement.yml"
-  "alignment_03_population_fertility_cohabitation.yml"
-  "alignment_04_population_fertility_cohabitation_employment.yml"
+#  "alignment_01_population.yml"
+#  "alignment_02a_population_fertility.yml"
+#  "alignment_02b_population_cohabitation.yml"
+#  "alignment_02c_population_disability.yml"
+#  "alignment_02d_population_inschool.yml"
+#  "alignment_02e_population_retirement.yml"
+#  "alignment_03_population_fertility_cohabitation.yml"
+#  "alignment_04_population_fertility_cohabitation_employment.yml"
 )
 
 if [[ ! -f "$JAR_PATH" ]]; then
