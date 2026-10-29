@@ -163,7 +163,7 @@ public class Parameters {
     public static String COUNTRY_STRING = "";
 
     public static int MIN_AGE_TO_HAVE_INCOME = 16; //Minimum age to have non-employment non-benefit income
-    public static int MAX_LABOUR_HOURS_IN_WEEK = 80; // weekly hours cap; must equal the upper limit of the country's top band in Labour (checkLabourBandLimits)
+    public static int MAX_LABOUR_HOURS_IN_WEEK = 84; // weekly hours cap; must equal the upper limit of the country's top band in Labour (checkLabourBandLimits)
     public static int HOURS_IN_WEEK = 24*7; // currently, 24 hours per day is used to calculate leisure in labour supply
     public static boolean USE_CONTINUOUS_LABOUR_SUPPLY_HOURS = true; // If true, a random number of hours of weekly labour supply within each bracket will be generated. Otherwise, each discrete choice of labour supply corresponds to a fixed number of hours of labour supply, which is the same for all persons
     public static boolean USE_MIDPOINT_HOURS = false; // Applies only to realised hours of brackets that do not spread hours (Labour.spreadsRealisedHours false): if true, they realise at the bracket midpoint (min + max) / 2 instead of their representative hours. Choice-stage (utility) evaluation always uses representative hours for these brackets; brackets that spread hours are unaffected
@@ -189,8 +189,8 @@ public class Parameters {
     public static double ANNUITY_RATE_OF_RETURN = 0.015;
 
     public static int MIN_HOURS_FULL_TIME_EMPLOYED = 25;    // used to distinguish full-time from part-time employment (needs to be consistent with Labour enum)
-    public static int MIN_HOURS_EMPLOYED = 1;    // minimum weekly hours to count as employed (ES 6, PL 1): persons employed on fewer hours are recoded to not employed
-                                                // at setup (DataParser.marginalEmploymentRecode; setup reads this key from parameters.xlsx itself, loadMinHoursEmployed),
+    public static int MIN_HOURS_EMPLOYED = 6;    // minimum weekly hours to count as employed (ES 6, PL 1): persons employed on fewer hours are recoded to not employed
+                                                // at setup (DataParser.marginalEmploymentRecode),
                                                 // and fewer hours convert to Labour.ZERO. Must equal the lower limit of the country's first positive band in Labour (checkLabourBandLimits)
     public static double MIN_HOURLY_WAGE_RATE = 0.0;
     public static double MAX_HOURLY_WAGE_RATE = 75.0;
@@ -198,8 +198,7 @@ public class Parameters {
     public static double MAX_HOURS_WEEKLY_INFORMAL_CARE = 16 * 7;
     public static double CHILDCARE_COST_EARNINGS_CAP = 0.5;  // maximum share of earnings payable as childcare (for benefit units with some earnings)
 
-    // thresholds of the tax-donor key function (KeyFunctionHU2); setup reads them from parameters.xlsx itself (loadSetupParameters),
-    // so that donors and simulated benefit units are keyed on the same values
+    // thresholds of the tax-donor key function (KeyFunctionHU2): applied to the donors at setup and to simulated benefit units in the run
     public static double KEY_FUNCTION_HU2_HI_INCOME = 287.0; // 67th percentile observed in the EM data for 2018
     public static double KEY_FUNCTION_HU2_LO_INCOME = 140.0; // 33rd percentile observed in the EM data for 2018
     public static int KEY_FUNCTION_HU2_MID_AGE = 45;
@@ -979,8 +978,7 @@ public class Parameters {
          * input/<COUNTRY>/parameters.xlsx, so keep that file updated when changing parameter defaults.
          */
 
-        countrySpecificParameters = ExcelAssistant.loadCoefficientMap(resolveCountryFile(country, "parameters.xlsx"), "Parameters", 1);
-        ParametersLoader.setParametersFromMap(countrySpecificParameters);
+        loadCountrySpecificParameters(country);
         checkLabourBandLimits(country);
 
         maxAge      = maxAgeModel;
@@ -2328,22 +2326,6 @@ public class Parameters {
         }
     }
 
-    /**
-     * Setup builds the starting population before the model loads parameters.xlsx (loadParameters), so it reads
-     * MIN_HOURS_EMPLOYED from the workbook itself: DataParser.marginalEmploymentRecode needs the country's value.
-     */
-    private static void loadMinHoursEmployed(Country country) {
-        MultiKeyCoefficientMap workbook = ExcelAssistant.loadCoefficientMap(resolveCountryFile(country, "parameters.xlsx"), "Parameters", 1);
-        Map<MultiKey<?>, Object> minHours = new HashMap<>();
-        for (Object entryObject : workbook.entrySet()) {
-            Map.Entry<?, ?> entry = (Map.Entry<?, ?>) entryObject;
-            MultiKey<?> key = (MultiKey<?>) entry.getKey();
-            if ("MIN_HOURS_EMPLOYED".equals(key.getKey(0).toString()))
-                minHours.put(key, entry.getValue());
-        }
-        ParametersLoader.setParametersFromMap(minHours);
-    }
-
     // EU-SILC weekly-hours distributions used when USE_SILC_LHW_DISTRIBUTION is true: cumulative frequency
     // indexed by weekly hours 0..84, keyed by sheet name (sample type and gender, e.g. "Couple_female")
     private static final Set<Country> SILC_LHW_DISTRIBUTION_COUNTRIES = EnumSet.of(Country.ES, Country.PL);
@@ -3228,27 +3210,16 @@ public static void putPrevOrNewTarget(int year, Object newTarget, TimeSeriesVari
         return val;
     }
 
-    // parameters.xlsx keys that setup reads itself (loadSetupParameters)
-    private static final Set<String> SETUP_PARAMETERS = Set.of(
-            "KEY_FUNCTION_HU2_HI_INCOME", "KEY_FUNCTION_HU2_LO_INCOME", "KEY_FUNCTION_HU2_MID_AGE", "KEY_FUNCTION_HU2_INCOME_REF_YEAR");
-
     /**
-     * Setup builds the input database before the model loads parameters.xlsx (loadParameters), so it reads the keys
-     * it needs from the workbook itself: the KEY_FUNCTION_HU2_* thresholds with which
-     * TaxDonorDataParser.populateDonorTaxUnitTables gives each donor its matching keys. Simulated benefit units get
-     * their keys after loadParameters, so without this the two sides of the match would use different thresholds
-     * wherever the workbook differs from the Java defaults (as ES's does).
+     * Reads the Parameters sheet of input/<COUNTRY>/parameters.xlsx and sets the static field of the same name for
+     * each key, overriding the defaults declared above. Called by loadParameters, and by databaseSetup before the
+     * input database is built, so that setup uses the same values as the simulation: for example MIN_HOURS_EMPLOYED
+     * in DataParser.marginalEmploymentRecode, and the KEY_FUNCTION_HU2_* thresholds with which
+     * TaxDonorDataParser.populateDonorTaxUnitTables gives each donor its matching keys.
      */
-    private static void loadSetupParameters(Country country) {
-        MultiKeyCoefficientMap workbook = ExcelAssistant.loadCoefficientMap(resolveCountryFile(country, "parameters.xlsx"), "Parameters", 1);
-        Map<MultiKey<?>, Object> setupParameters = new HashMap<>();
-        for (Object entryObject : workbook.entrySet()) {
-            Map.Entry<?, ?> entry = (Map.Entry<?, ?>) entryObject;
-            MultiKey<?> key = (MultiKey<?>) entry.getKey();
-            if (SETUP_PARAMETERS.contains(key.getKey(0).toString()))
-                setupParameters.put(key, entry.getValue());
-        }
-        ParametersLoader.setParametersFromMap(setupParameters);
+    private static void loadCountrySpecificParameters(Country country) {
+        countrySpecificParameters = ExcelAssistant.loadCoefficientMap(resolveCountryFile(country, "parameters.xlsx"), "Parameters", 1);
+        ParametersLoader.setParametersFromMap(countrySpecificParameters);
     }
 
     public static void databaseSetup(Country country, boolean executeWithGui, int startYear) {
@@ -3257,11 +3228,10 @@ public static void putPrevOrNewTarget(int year, Object newTarget, TimeSeriesVari
         String filePath = "./input" + File.separator + "input.mv.db";
         safeDelete(filePath);
 
-        // parameters.xlsx keys needed before loadParameters
-        loadSetupParameters(country); // KEY_FUNCTION_HU2_* for the donor keys
+        // setup runs before loadParameters, so it reads parameters.xlsx itself
+        loadCountrySpecificParameters(country);
 
         // populate new database for starting data
-        loadMinHoursEmployed(country); // used by DataParser.marginalEmploymentRecode
         DataParser.databaseFromCSV(country, executeWithGui); // Initial database tables
 
         // populate new database for tax donors
