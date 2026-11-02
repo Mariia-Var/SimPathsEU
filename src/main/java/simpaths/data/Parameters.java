@@ -3215,9 +3215,12 @@ public static void putPrevOrNewTarget(int year, Object newTarget, TimeSeriesVari
      * each key, overriding the defaults declared above. Called by loadParameters, and by databaseSetup before the
      * input database is built, so that setup uses the same values as the simulation: for example MIN_HOURS_EMPLOYED
      * in DataParser.marginalEmploymentRecode, and the KEY_FUNCTION_HU2_* thresholds with which
-     * TaxDonorDataParser.populateDonorTaxUnitTables gives each donor its matching keys.
+     * TaxDonorDataParser.populateDonorTaxUnitTables gives each donor its matching keys. Also called directly by
+     * SimPathsStart before anything that reads a country-specific static field ahead of databaseSetup/loadParameters
+     * (validateStartYear, or the GUI's direct DataParser.databaseFromCSV call), so that those earlier reads see the
+     * workbook value instead of the Java default.
      */
-    private static void loadCountrySpecificParameters(Country country) {
+    public static void loadCountrySpecificParameters(Country country) {
         countrySpecificParameters = ExcelAssistant.loadCoefficientMap(resolveCountryFile(country, "parameters.xlsx"), "Parameters", 1);
         ParametersLoader.setParametersFromMap(countrySpecificParameters);
     }
@@ -3228,7 +3231,9 @@ public static void putPrevOrNewTarget(int year, Object newTarget, TimeSeriesVari
         String filePath = "./input" + File.separator + "input.mv.db";
         safeDelete(filePath);
 
-        // setup runs before loadParameters, so it reads parameters.xlsx itself
+        // setup runs before loadParameters, so it reads parameters.xlsx itself (SimPathsStart also loads it earlier,
+        // before this call, so that validation ahead of databaseSetup already sees these values; re-loading here
+        // keeps this method correct for any other caller that skips that earlier load)
         loadCountrySpecificParameters(country);
 
         // populate new database for starting data
