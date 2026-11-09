@@ -2326,73 +2326,22 @@ public class Parameters {
         }
     }
 
-    // EU-SILC weekly-hours distributions used when USE_SILC_LHW_DISTRIBUTION is true: cumulative frequency
-    // indexed by weekly hours 0..84, keyed by sheet name (sample type and gender, e.g. "Couple_female")
+    // Countries whose realised hours are drawn from the EU-SILC hours distributions when USE_SILC_LHW_DISTRIBUTION is true
     private static final Set<Country> SILC_LHW_DISTRIBUTION_COUNTRIES = EnumSet.of(Country.ES, Country.PL);
-    private static final String SILC_LHW_DISTRIBUTION_FILE = "silc_lhw_distribution.xlsx";
-    private static final String[] SILC_LHW_SHEETS = {"Single_indep_male", "Single_indep_female", "Couple_male", "Couple_female",
-            "Single_dep_male", "Single_dep_female", "Adult_child_male", "Adult_child_female"};
-    private static Map<String, double[]> silcLhwCumulative;
+    private static SilcHoursDistribution silcHoursDistribution;   // loaded in loadParameters when USE_SILC_LHW_DISTRIBUTION is true and the country is one of SILC_LHW_DISTRIBUTION_COUNTRIES
 
-    /** Loads the EU-SILC hours distributions of input/<country> (USE_SILC_LHW_DISTRIBUTION, SILC_LHW_DISTRIBUTION_COUNTRIES only). */
+    /** Loads the EU-SILC hours distribution of input/<country> (USE_SILC_LHW_DISTRIBUTION, SILC_LHW_DISTRIBUTION_COUNTRIES only). */
     private static void loadSilcLhwDistribution(Country country) {
-        silcLhwCumulative = null;
-        if (!USE_SILC_LHW_DISTRIBUTION || !SILC_LHW_DISTRIBUTION_COUNTRIES.contains(country)) return;
-
-        silcLhwCumulative = new HashMap<>();
-        String file = resolveCountryFile(country, SILC_LHW_DISTRIBUTION_FILE);
-        for (String sheet : SILC_LHW_SHEETS) {
-            MultiKeyCoefficientMap map = ExcelAssistant.loadCoefficientMap(file, sheet, 1);
-            // read the frequencies f(h), then turn them in place into the cumulative distribution F(h) = f(0) + ... + f(h)
-            double[] cumFreq = new double[85];
-            for (Object entryObject : map.entrySet()) {
-                Map.Entry<?, ?> entry = (Map.Entry<?, ?>) entryObject;
-                int hours = (int) Math.round(Double.parseDouble(((MultiKey<?>) entry.getKey()).getKey(0).toString()));
-                if (hours >= 0 && hours < cumFreq.length)
-                    cumFreq[hours] += ((Number) entry.getValue()).doubleValue();
-            }
-            for (int h = 1; h < cumFreq.length; h++)
-                cumFreq[h] += cumFreq[h - 1];
-            silcLhwCumulative.put(sheet, cumFreq);
-        }
-    }
-
-    /** True when realised hours are drawn from the EU-SILC hours distributions: USE_SILC_LHW_DISTRIBUTION is on and the country has them. */
-    public static boolean useSilcLhwDistribution() {
-        return USE_SILC_LHW_DISTRIBUTION && silcLhwCumulative != null;
+        silcHoursDistribution = (USE_SILC_LHW_DISTRIBUTION && SILC_LHW_DISTRIBUTION_COUNTRIES.contains(country)) ?
+                SilcHoursDistribution.load(resolveCountryFile(country, SilcHoursDistribution.FILE_NAME)) : null;
     }
 
     /**
-     * Draws realised weekly hours in the band [min, max] from the EU-SILC hours distribution of the given sheet, so
-     * that each hour is drawn with probability equal to its SILC share within the band (hours never observed are
-     * never drawn). u is the person's uniform draw. Returns -1 if the band has no SILC frequency.
+     * EU-SILC hours distribution used to draw realised hours, or null when USE_SILC_LHW_DISTRIBUTION is off or the
+     * country is not one of SILC_LHW_DISTRIBUTION_COUNTRIES
      */
-    public static int drawSilcLhwHours(String sheet, int min, int max, double u) {
-        if (silcLhwCumulative == null)
-            throw new IllegalStateException("EU-SILC hours distributions not loaded: USE_SILC_LHW_DISTRIBUTION is off or the country is not one of " + SILC_LHW_DISTRIBUTION_COUNTRIES);
-        double[] cumFreq = silcLhwCumulative.get(sheet);
-        if (cumFreq == null)
-            throw new IllegalArgumentException("No EU-SILC hours distribution for sheet " + sheet);
-
-        int bandLow = Math.max(min, 1);
-        int bandHigh = Math.min(max, cumFreq.length - 1);
-        if (bandHigh < bandLow) return -1;
-
-        double cumBelowBand = cumFreq[bandLow - 1];
-        double bandShare = cumFreq[bandHigh] - cumBelowBand;
-        if (!(bandShare > 0.0)) return -1;
-
-        // Map the uniform draw u onto the cumulative probability range of the allowed hours band.
-        // Select the first hour whose cumulative probability exceeds this target,
-        // preserving the relative EU-SILC frequencies within the band.
-
-        double cumTarget = cumBelowBand + u * bandShare;
-        for (int h = bandLow; h <= bandHigh; h++)
-            if (cumFreq[h] > cumTarget) return h;
-
-        int h = bandHigh;
-        while (h > bandLow && cumFreq[h - 1] >= cumFreq[h]) h--;
-        return h;
+    public static SilcHoursDistribution getSilcHoursDistribution() {
+        return silcHoursDistribution;
     }
 
     /**

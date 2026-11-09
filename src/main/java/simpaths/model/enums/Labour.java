@@ -2,6 +2,7 @@ package simpaths.model.enums;
 
 import microsim.statistics.regression.IntegerValuedEnum;
 import simpaths.data.Parameters;
+import simpaths.data.SilcHoursDistribution;
 import simpaths.model.Person;
 
 import java.util.Objects;
@@ -212,8 +213,9 @@ public enum Labour implements IntegerValuedEnum {
         int max = (gender == Gender.Female) ? femaleMax : maleMax;
 
         // ES, PL: draw realised hours from the EU-SILC within-band distribution
-        if (Parameters.useSilcLhwDistribution()) {
-            int hours = Parameters.drawSilcLhwHours(person.getSilcLhwSheet(), min, max, person.getLabourSupplyHoursDraw());
+        SilcHoursDistribution observed = Parameters.getSilcHoursDistribution();
+        if (observed != null) {
+            int hours = observed.draw(person.getSilcLhwSheet(), min, max, person.getLabourSupplyHoursDraw());
             if (hours > 0) return hours;
         }
 
