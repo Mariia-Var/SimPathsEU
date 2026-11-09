@@ -67,6 +67,12 @@ public class SimPathsStart implements ExperimentBuilder {
 	// to run; when true, the explicit CLI value wins and auto-detect is skipped.
 	private static boolean trainingFlagExplicit = false;
 
+	// Tracks whether -s/--startYear was given on the command line. When false, runGUIlessSetup
+	// recomputes the default start year once the country workbook is loaded and training mode
+	// (explicit -t, or auto-detected) is resolved, instead of keeping the value resetCommandLineState
+	// assigned before those were known.
+	private static boolean startYearExplicit = false;
+
 
 	/**
 	 *
@@ -272,6 +278,7 @@ public class SimPathsStart implements ExperimentBuilder {
 
 			if (cmd.hasOption("s")) {
 				startYear = Integer.parseInt(cmd.getOptionValue("s"));
+				startYearExplicit = true;
 			}
 
 			if (cmd.hasOption("e")) {
@@ -329,6 +336,7 @@ public class SimPathsStart implements ExperimentBuilder {
 		rewritePolicySchedule = false;
 		reuseExistingDatabase = defaultReuseExistingDatabase;
 		trainingFlagExplicit = false;
+		startYearExplicit = false;
 	}
 
 
@@ -376,6 +384,13 @@ public class SimPathsStart implements ExperimentBuilder {
 				System.out.println("No CSV files found under " + Parameters.getInputDirectoryInitialPopulations(country)
 						+ " — auto-switching to training data (Parameters.trainingFlag = true).");
 			}
+		}
+
+		// resetCommandLineState assigned this default before the country workbook was loaded and before
+		// training mode (explicit -t, or just auto-detected above) was known; recompute it now unless the
+		// caller explicitly supplied -s
+		if (!startYearExplicit) {
+			startYear = Parameters.getMaxStartYear();
 		}
 
 		Parameters.validateStartYear(startYear);
@@ -542,11 +557,14 @@ public class SimPathsStart implements ExperimentBuilder {
 		String taxDonorInputFilename = "tax_donor_population_" + country;
 		Parameters.setTaxDonorInputFileName(taxDonorInputFilename);
 
+		// this path (unlike runGUIlessSetup) never calls databaseSetup, so load the country's parameters.xlsx
+		// here, before either branch below: otherwise marginalEmploymentRecode would recode the starting
+		// population against the Java default MIN_HOURS_EMPLOYED instead of the country's workbook value
+		// (e.g. PL's 1, not the default 6), and a tax-only setup (choices[2]/[3]/[4] alone) would build donor
+		// matching keys from Java-default thresholds while the simulation later matches against workbook values
+		Parameters.loadCountrySpecificParameters(country);
+
 		if (choices[0] || choices[1]) {
-			// this path (unlike runGUIlessSetup) never calls databaseSetup, so load the country's parameters.xlsx
-			// here: otherwise marginalEmploymentRecode would run against the Java default MIN_HOURS_EMPLOYED
-			// instead of the country's workbook value (e.g. PL's 1, not the default 6)
-			Parameters.loadCountrySpecificParameters(country);
 			DataParser.databaseFromCSV(country, showGui); // Initial database tables
 		}
 
