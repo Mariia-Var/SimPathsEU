@@ -129,6 +129,11 @@ public class SimPathsMultiRun extends MultiRun {
 		// without this call the DBSetup branch crashes with "No PSA rules for country=".
 		Parameters.defineCountryString(country);
 
+		// Load the country's parameters.xlsx before validating startYear, so validation (and, on -DBSetup,
+		// Parameters.databaseSetup's own delete-then-load) use the same MIN/MAX_START_YEAR(_TRAINING) bounds as the
+		// database actually built, instead of validating here against the Java defaults
+		Parameters.loadCountrySpecificParameters(country);
+
 		Parameters.validateStartYear(startYear);
 
         /*comment these lines if input folder needs to be saved in output*/

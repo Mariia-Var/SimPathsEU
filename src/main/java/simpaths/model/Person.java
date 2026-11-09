@@ -15,6 +15,7 @@ import simpaths.data.ManagerRegressions;
 import simpaths.data.MultiValEvent;
 import simpaths.data.Parameters;
 import simpaths.data.RegressionName;
+import simpaths.data.SilcHoursDistribution;
 import simpaths.data.filters.FertileFilter;
 import simpaths.model.decisions.Axis;
 import simpaths.model.decisions.DecisionParams;
@@ -207,7 +208,7 @@ public class Person implements EventListener, IDoubleSource, IIntSource, Weight,
     @Transient private Map<Labour, Integer> personContinuousHoursLabourSupplyMap = new EnumMap<>(Labour.class);
     @Transient private boolean evaluatingLabourChoice = false; // true while the benefit unit scores candidate hours brackets; see Parameters.useRepresentativeHoursInUtility
     @Transient private Double labHrsDrawYear; // this year's position within the hours bracket, used when Parameters.redrawHoursEachYear is true
-    @Transient private String silcLhwSheet; // EU-SILC hours-distribution sheet (sample type and gender) fixed at the start of each labour-supply choice pass; see Parameters.USE_SILC_LHW_DISTRIBUTION_ES
+    @Transient private String silcLhwSheet; // EU-SILC hours-distribution sheet (sample type and gender) fixed at the start of each labour-supply choice pass; see Parameters.USE_SILC_LHW_DISTRIBUTION
 
     // local variables interact with regression models
     @Transient private Integer i_demYear;
@@ -4272,32 +4273,15 @@ public class Person implements EventListener, IDoubleSource, IIntSource, Weight,
      * candidate hours bracket, which would rerun the partner's atRiskOfWork() each time.
      */
     public void updateSilcLhwSheet() {
-        silcLhwSheet = (Parameters.USE_SILC_LHW_DISTRIBUTION_ES && "ES".equals(Parameters.COUNTRY_STRING))
-                ? findSilcLhwSheet() : null;
+        silcLhwSheet = (Parameters.getSilcHoursDistribution() != null) ? SilcHoursDistribution.sheetFor(this) : null;
     }
 
     /**
-     * EU-SILC hours-distribution sheet used to draw realised hours (Parameters.USE_SILC_LHW_DISTRIBUTION_ES):
+     * EU-SILC hours-distribution sheet used to draw realised hours (Parameters.USE_SILC_LHW_DISTRIBUTION):
      * the one fixed at the start of the last labour-supply choice pass, otherwise the person's current sample type.
      */
     public String getSilcLhwSheet() {
-        return (silcLhwSheet != null) ? silcLhwSheet : findSilcLhwSheet();
-    }
-
-    /**
-     * Sample type and gender of the person, mirroring the choice of labour-supply estimates in BenefitUnit:
-     * Couple when both partners are flexible in labour supply, Single_dep when the partner is not,
-     * Adult_child for single adult children and Single_indep for other singles.
-     */
-    private String findSilcLhwSheet() {
-        String sample;
-        if (benefitUnit != null && Occupancy.Couple.equals(benefitUnit.getOccupancy())) {
-            Person partner = (Gender.Female.equals(demMaleFlag)) ? benefitUnit.getMale() : benefitUnit.getFemale();
-            sample = (partner != null && partner.atRiskOfWork()) ? "Couple" : "Single_dep";
-        } else {
-            sample = (getAdultChildFlag() == 1) ? "Adult_child" : "Single_indep";
-        }
-        return sample + (Gender.Female.equals(demMaleFlag) ? "_female" : "_male");
+        return (silcLhwSheet != null) ? silcLhwSheet : SilcHoursDistribution.sheetFor(this);
     }
 
     public double getLabourSupplyHoursYearly() {
