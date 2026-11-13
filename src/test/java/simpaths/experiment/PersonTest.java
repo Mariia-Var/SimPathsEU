@@ -296,6 +296,18 @@ public class PersonTest {
             assertEquals(4.0, testPerson.getDoubleValue(Person.DoublesVariables.Ydses_c5_L1));
             assertEquals(1.0, testPerson.getDoubleValue(Person.DoublesVariables.Parents_known_Ydses_Q4_L1));
         }
+
+        @Test
+        @DisplayName("Dhh_owned_L1 reads the home ownership saved on the person, not the current benefit unit's")
+        public void homeOwnershipLagIsKeptPerPerson() throws Exception {
+            // Saved last year from the parents' owned home; the person now heads a new, not-owned unit, as after turning 18
+            setPrivateField(testPerson, "wealthDhhOwnedL1", Boolean.TRUE);
+            Mockito.when(mockBenefitUnit.isDhhOwned()).thenReturn(false);
+            assertEquals(1.0, testPerson.getDoubleValue(Person.DoublesVariables.Dhh_owned_L1));
+
+            setPrivateField(testPerson, "wealthDhhOwnedL1", null);
+            assertEquals(0.0, testPerson.getDoubleValue(Person.DoublesVariables.Dhh_owned_L1));
+        }
     }
 
     // -------------------------------------------------------------------------

@@ -170,6 +170,7 @@ public class Person implements EventListener, IDoubleSource, IIntSource, Weight,
     private Double yNonBenPersGrossMonth; // asinh of personal non-benefit income per month
     @Transient private Double yNonBenPersGrossMonthL1; //Lag(1) of gross personal non-benefit income
     @Transient private Ydses_c5 yHhQuintilesC5L1; //Lag(1) income quintile of the benefit unit the person was in last year (Ydses_c5_*_L1); kept per person, see updateLaggedVariables
+    @Transient private Boolean wealthDhhOwnedL1; //Lag(1) home ownership of the benefit unit the person was in last year (Dhh_owned_L1); kept per person, see updateLaggedVariables
     @Transient private boolean parentsKnownL1; //Lag(1): a mother or father lived in the same household (Parents_known_L1)
     @Transient private Double parentsYpnbL1; //Lag(1) asinh of co-resident parents' summed non-benefit income; null if none
     @Transient private Ydses_c5 parentsYpnbQuintileL1; //Quintile of parentsYpnbL1, cut each year by SimPathsModel; null if none
@@ -415,6 +416,7 @@ public class Person implements EventListener, IDoubleSource, IIntSource, Weight,
         yNonBenPersGrossMonth = originalPerson.getYpnbihs_dv();
         yNonBenPersGrossMonthL1 = originalPerson.yNonBenPersGrossMonthL1;
         yHhQuintilesC5L1 = originalPerson.yHhQuintilesC5L1;
+        wealthDhhOwnedL1 = originalPerson.wealthDhhOwnedL1;
         parentsKnownL1 = originalPerson.parentsKnownL1;
         parentsYpnbL1 = originalPerson.parentsYpnbL1;
         yMiscPersGrossMonth = Objects.requireNonNullElse(originalPerson.yMiscPersGrossMonth, 0.0);
@@ -1834,6 +1836,9 @@ public class Person implements EventListener, IDoubleSource, IIntSource, Weight,
         // Lag(1) income quintile, saved per person as Stata's l.ydses_c5 is. This runs before ageing, while the person is
         // still in last year's benefit unit, so someone who turns 18 and moves to a new unit keeps their parents' quintile.
         yHhQuintilesC5L1 = benefitUnit.getYdses_c5();
+        // Lag(1) home ownership, saved per person for the same reason. At 17 it is the parents' unit's, as in the data,
+        // where every benefit unit takes the home ownership of its household (03_create_benefit_units_<CC>.do).
+        wealthDhhOwnedL1 = benefitUnit.isDhhOwned();
         updateParentsLaggedVariables();
         labHrsWorkEnumWeekL1 = getLabourSupplyWeekly(); // Lag(1) of labour supply
         yBenReceivedFlagL1 = yBenReceivedFlag; // Lag(1) of flag indicating if individual receives benefits
@@ -3594,7 +3599,7 @@ public class Person implements EventListener, IDoubleSource, IIntSource, Weight,
                 return getBenefitUnit().isDhhOwned() ? 1. : 0.;
             } // Evaluated at the level of a benefit unit. If required, can be changed to individual-level homeownership status.
             case Dhh_owned_L1 -> {
-                return getBenefitUnit().isDhhOwned_lag1() ? 1. : 0.;
+                return Boolean.TRUE.equals(wealthDhhOwnedL1) ? 1. : 0.;
             }
             case Pt -> {
                 return (getLabourSupplyHoursWeekly() > 0 && getLabourSupplyHoursWeekly() < Parameters.MIN_HOURS_FULL_TIME_EMPLOYED) ? 1. : 0.;

@@ -91,7 +91,6 @@ public class BenefitUnit implements EventListener, IDoubleSource, Weight, Compar
     @Transient private Dhhtp_c4 demCompHhC4L1;
     private String demCreatedByConstructor;
     private Boolean wealthPrptyFlag; // are any of the individuals in the benefit unit a homeowner? True / false
-    @Transient private Boolean wealthDhhOwnedL1;
     @Transient ArrayList<Triple<Les_c7_covid, Double, Integer>> covid19MonthlyStateAndGrossIncomeAndWorkHoursTripleMale = new ArrayList<>();
     @Transient ArrayList<Triple<Les_c7_covid, Double, Integer>> covid19MonthlyStateAndGrossIncomeAndWorkHoursTripleFemale = new ArrayList<>(); // This ArrayList stores monthly values of labour market states and gross incomes, to be sampled from by the LabourMarket class, for the female member of the benefit unit
 
@@ -305,7 +304,6 @@ public class BenefitUnit implements EventListener, IDoubleSource, Weight, Compar
         this.yHhQuintilesMonthC5 = originalBenefitUnit.getYdses_c5();
         this.demCompHhC4L1 = originalBenefitUnit.demCompHhC4L1;
         this.wealthPrptyFlag = originalBenefitUnit.wealthPrptyFlag;
-        this.wealthDhhOwnedL1 = originalBenefitUnit.wealthDhhOwnedL1;
         demCreatedByConstructor = Objects.requireNonNullElse(originalBenefitUnit.demCreatedByConstructor,"CopyConstructor");
         i_yNonBenHhGrossAsinh = Objects.requireNonNullElse(originalBenefitUnit.i_yNonBenHhGrossAsinh, 0.0);
         taxDbMatch = originalBenefitUnit.getTaxDbMatch();
@@ -423,11 +421,11 @@ public class BenefitUnit implements EventListener, IDoubleSource, Weight, Compar
         demNChildAllL1 = getNumberChildrenAll();
         demNChildren02L1 = getNumberChildren(0,2);
         demCompHhC4L1 = getDhhtp_c4();
-        wealthDhhOwnedL1 = isDhhOwned();
 
         yDispEquivYearL1 = getEquivalisedDisposableIncomeYearly();
         yPvrtyFlagL1 = getAtRiskOfPoverty();
-        // the lag of the income quintile (Ydses_c5_*_L1) is kept per person, in Person.updateLaggedVariables
+        // the lags of the income quintile (Ydses_c5_*_L1) and of home ownership (Dhh_owned_L1) are kept per person,
+        // in Person.updateLaggedVariables
 
         // random draws
         innovations.getNewDoubleDraws();
@@ -4398,17 +4396,6 @@ public class BenefitUnit implements EventListener, IDoubleSource, Weight, Compar
 
     public void setDhhOwned(boolean dhh_owned) {
         this.wealthPrptyFlag = dhh_owned;
-    }
-
-    public Boolean isDhhOwned_lag1() {
-        if (wealthDhhOwnedL1 == null) {
-            wealthDhhOwnedL1 = false;
-        }
-        return wealthDhhOwnedL1;
-    }
-
-    public void setDhhOwned_lag1(Boolean wealthDhhOwnedL1) {
-        this.wealthDhhOwnedL1 = wealthDhhOwnedL1;
     }
 
 
