@@ -71,10 +71,7 @@ public class BenefitUnit implements EventListener, IDoubleSource, Weight, Compar
     private Double yGrossMonth;
     private Double yBenAmountMonth;
     private Double yDispEquivYear;
-    @Transient private Double yDispEquivYearL1;
-    @Transient private Double yDiffDispEquivPrevYear;
     private Integer yPvrtyFlag;        //1 if at risk of poverty, defined by an equivalisedDisposableIncomeYearly < 60% of median household's
-    @Transient private Integer yPvrtyFlagL1;
     @Transient private Indicator i_demNChild0to2L1;                //Lag(1) of d_children_3under;
     @Transient private Indicator dem4to12L1;                //Lag(1) of d_children_4_12;
     private Double xChildCareWeek;
@@ -276,11 +273,8 @@ public class BenefitUnit implements EventListener, IDoubleSource, Weight, Compar
         xDiscretionaryYear = Objects.requireNonNullElse(originalBenefitUnit.xDiscretionaryYear, 0.0);
         yGrossMonth = Objects.requireNonNullElse(originalBenefitUnit.getGrossIncomeMonthly(),0.0);
         yDispEquivYear = Objects.requireNonNullElse(originalBenefitUnit.yDispEquivYear,0.0);
-        yDispEquivYearL1 = Objects.requireNonNullElse(originalBenefitUnit.yDispEquivYearL1,yDispEquivYear);
         yBenAmountMonth = Objects.requireNonNullElse(originalBenefitUnit.getBenefitsReceivedPerMonth(),0.0);
         yPvrtyFlag = Objects.requireNonNullElse(originalBenefitUnit.yPvrtyFlag,0);
-        yPvrtyFlagL1 = Objects.requireNonNullElse(originalBenefitUnit.yPvrtyFlagL1,yPvrtyFlag);
-        yDiffDispEquivPrevYear = Objects.requireNonNullElse(originalBenefitUnit.yDiffDispEquivPrevYear,0.0);
         if (Parameters.projectLiquidWealth)
             initialiseLiquidWealth(
                     originalBenefitUnit.getRefPersonForDecisions().getDag(),
@@ -335,7 +329,8 @@ public class BenefitUnit implements EventListener, IDoubleSource, Weight, Compar
             }
             case CalculateChangeInEDI -> {
                 calculateEquivalisedDisposableIncomeYearly(); //Update BU's EDI
-                calculateYearlyChangeInLogEquivalisedDisposableIncome(); //Calculate change in EDI
+                // the change in EDI from last year (RealIncomeChange, RealIncomeDecrease_D) is computed per person, against
+                // the person's own lag (Person.getYearlyChangeInLogEDI)
             }
             case Homeownership -> {
                 homeownership();
@@ -410,10 +405,9 @@ public class BenefitUnit implements EventListener, IDoubleSource, Weight, Compar
         i_demNChild0to2L1 = getIndicatorChildren(0,3);
         dem4to12L1 = getIndicatorChildren(4,12);
 
-        yDispEquivYearL1 = getEquivalisedDisposableIncomeYearly();
-        yPvrtyFlagL1 = getAtRiskOfPoverty();
-        // the lags of the income quintile (Ydses_c5_*_L1), home ownership (Dhh_owned_L1), number of children (Dnc*_L1)
-        // and household type (Dhhtp_c4_*_L1) are kept per person, in Person.updateLaggedVariables
+        // the lags of the income quintile (Ydses_c5_*_L1), home ownership (Dhh_owned_L1), number of children (Dnc*_L1),
+        // household type (Dhhtp_c4_*_L1), equivalised disposable income and poverty status are kept per person, in
+        // Person.updateLaggedVariables
 
         // random draws
         innovations.getNewDoubleDraws();
@@ -4041,22 +4035,6 @@ public class BenefitUnit implements EventListener, IDoubleSource, Weight, Compar
     }
 
 
-    private double calculateYearlyChangeInLogEquivalisedDisposableIncome() {
-        double yearlyChangeInLogEquivalisedDisposableIncome = 0.;
-        if (yDispEquivYear != null && yDispEquivYearL1 != null && yDispEquivYear >= 0. && yDispEquivYearL1 >= 0.) {
-            // Equivalised disposable income is already stored in BASE_PRICE_YEAR prices.
-            // +1 added as log(0) is not defined
-            yearlyChangeInLogEquivalisedDisposableIncome =
-                    Math.log(yDispEquivYear + 1)
-                            - Math.log(yDispEquivYearL1 + 1);
-        }
-        yDiffDispEquivPrevYear = yearlyChangeInLogEquivalisedDisposableIncome;
-        if (yDiffDispEquivPrevYear==null)
-            throw new RuntimeException("problem evaluating yearly change in log edi");
-        return yearlyChangeInLogEquivalisedDisposableIncome;
-    }
-
-
     ////////////////////////////////////////////////////////////////////////////////
     //
     //	Access Methods
@@ -4278,10 +4256,6 @@ public class BenefitUnit implements EventListener, IDoubleSource, Weight, Compar
         } else return 0;
     }
 
-    public Integer getAtRiskOfPoverty_lag1() {
-        return yPvrtyFlagL1;
-    }
-
     public void setAtRiskOfPoverty(Integer yPvrtyFlag) {
         this.yPvrtyFlag = yPvrtyFlag;
     }
@@ -4361,12 +4335,6 @@ public class BenefitUnit implements EventListener, IDoubleSource, Weight, Compar
     }
 
 
-    public double getYearlyChangeInLogEDI() {
-        if (yDiffDispEquivPrevYear==null)
-            throw new RuntimeException("yearlyChangeInLogEDI requested before set");
-        return yDiffDispEquivPrevYear;
-    }
-
     public boolean isDhhOwned() {
         if (wealthPrptyFlag ==null) {
             wealthPrptyFlag = false;
@@ -4407,10 +4375,6 @@ public class BenefitUnit implements EventListener, IDoubleSource, Weight, Compar
         if (Math.abs(cost) > 0.01)
             cost *= Parameters.WEEKS_PER_MONTH / Parameters.getTimeSeriesValue(model.getYear(), TimeSeriesVariable.Inflation);
         return cost;
-    }
-
-    public boolean isDecreaseInYearlyEquivalisedDisposableIncome() {
-        return (yDispEquivYear != null && yDispEquivYearL1 != null && yDispEquivYear < yDispEquivYearL1);
     }
 
     public void clearStates() {
