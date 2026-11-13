@@ -171,6 +171,9 @@ public class Person implements EventListener, IDoubleSource, IIntSource, Weight,
     @Transient private Double yNonBenPersGrossMonthL1; //Lag(1) of gross personal non-benefit income
     @Transient private Ydses_c5 yHhQuintilesC5L1; //Lag(1) income quintile of the benefit unit the person was in last year (Ydses_c5_*_L1); kept per person, see updateLaggedVariables
     @Transient private Boolean wealthDhhOwnedL1; //Lag(1) home ownership of the benefit unit the person was in last year (Dhh_owned_L1); kept per person, see updateLaggedVariables
+    @Transient private Integer demNChildAllL1; //Lag(1) number of own dependent children aged 0-17 (Dnc*_L1, D_Children_L1); see updateChildrenAndHouseholdTypeLags
+    @Transient private Integer demNChildren02L1; //Lag(1) number of own dependent children aged 0-2 (Dnc02*_L1)
+    @Transient private Dhhtp_c4 demCompHhC4L1; //Lag(1) own household type (Dhhtp_c4_*_L1, Dhhtp_c8_*_L1)
     @Transient private boolean parentsKnownL1; //Lag(1): a mother or father lived in the same household (Parents_known_L1)
     @Transient private Double parentsYpnbL1; //Lag(1) asinh of co-resident parents' summed non-benefit income; null if none
     @Transient private Ydses_c5 parentsYpnbQuintileL1; //Quintile of parentsYpnbL1, cut each year by SimPathsModel; null if none
@@ -417,6 +420,9 @@ public class Person implements EventListener, IDoubleSource, IIntSource, Weight,
         yNonBenPersGrossMonthL1 = originalPerson.yNonBenPersGrossMonthL1;
         yHhQuintilesC5L1 = originalPerson.yHhQuintilesC5L1;
         wealthDhhOwnedL1 = originalPerson.wealthDhhOwnedL1;
+        demNChildAllL1 = originalPerson.demNChildAllL1;
+        demNChildren02L1 = originalPerson.demNChildren02L1;
+        demCompHhC4L1 = originalPerson.demCompHhC4L1;
         parentsKnownL1 = originalPerson.parentsKnownL1;
         parentsYpnbL1 = originalPerson.parentsYpnbL1;
         yMiscPersGrossMonth = Objects.requireNonNullElse(originalPerson.yMiscPersGrossMonth, 0.0);
@@ -1839,6 +1845,7 @@ public class Person implements EventListener, IDoubleSource, IIntSource, Weight,
         // Lag(1) home ownership, saved per person for the same reason. At 17 it is the parents' unit's, as in the data,
         // where every benefit unit takes the home ownership of its household (03_create_benefit_units_<CC>.do).
         wealthDhhOwnedL1 = benefitUnit.isDhhOwned();
+        updateChildrenAndHouseholdTypeLags();
         updateParentsLaggedVariables();
         labHrsWorkEnumWeekL1 = getLabourSupplyWeekly(); // Lag(1) of labour supply
         yBenReceivedFlagL1 = yBenReceivedFlag; // Lag(1) of flag indicating if individual receives benefits
@@ -3883,6 +3890,27 @@ public class Person implements EventListener, IDoubleSource, IIntSource, Weight,
     }
 
     /**
+     * Lag(1) number of own dependent children and own household type, as Stata's l.dnc, l.dnc02 and l.dhhtp_c4. In the
+     * data (03_create_benefit_units_<CC>.do) an adult's dnc is the number of children aged 0-17 in their benefit unit (ES)
+     * or of their own children (PL), a person aged 17 or under has none, and dhhtp_c4 combines dnc with the person's own
+     * partnership status. So an adult takes the values of their benefit unit, and a child, whose unit is the parents',
+     * has no children and is single. Called from updateLaggedVariables, before ageing, so a person who moves to a new
+     * benefit unit during the year (at 18, or when a partnership forms or ends) keeps last year's values.
+     */
+    private void updateChildrenAndHouseholdTypeLags() {
+
+        if (demAge < Parameters.AGE_TO_BECOME_RESPONSIBLE) {
+            demNChildAllL1 = 0;
+            demNChildren02L1 = 0;
+            demCompHhC4L1 = Dhhtp_c4.SingleNoChildren;
+        } else {
+            demNChildAllL1 = benefitUnit.getNumberChildrenAll();
+            demNChildren02L1 = benefitUnit.getNumberChildren(0,2);
+            demCompHhC4L1 = benefitUnit.getDhhtp_c4();
+        }
+    }
+
+    /**
      * Parental regressors of the education processes, as in input_processing/regression_estimates/ES/with_time_trend/01_reg_education_ES.do:
      * Parents_known is a mother or father in the same household; parents' income is asinh of the sum, in levels,
      * of their ypnbihs_dv (Stata: asinh(sinh(m)+sinh(f)) with rowtotal, so a missing income is skipped).
@@ -4948,9 +4976,7 @@ public class Person implements EventListener, IDoubleSource, IIntSource, Weight,
 
     private Dhhtp_c4 getDhhtp_c4_lag1() {
         if (model!=null) {
-            if (benefitUnit==null)
-                throw new RuntimeException("attempt to access unassigned benefit unit");
-            return benefitUnit.getDhhtp_c4_lag1();
+            return demCompHhC4L1;
         } else {
             if (i_demCompHhC4L1==null)
                 throw new RuntimeException("attempt to access unassigned dhhtp_c4_lag1Local");
@@ -4981,8 +5007,8 @@ public class Person implements EventListener, IDoubleSource, IIntSource, Weight,
     }
 
     private Integer getNumberChildrenAll_lag1() {
-        if (benefitUnit != null) {
-            return (benefitUnit.getNumberChildrenAll_lag1() != null) ? benefitUnit.getNumberChildrenAll_lag1() : 0;
+        if (model != null) {
+            return (demNChildAllL1 != null) ? demNChildAllL1 : 0;
         } else {
             return (i_demNchildL1==null) ? 0 : i_demNchildL1;
         }
@@ -5014,9 +5040,7 @@ public class Person implements EventListener, IDoubleSource, IIntSource, Weight,
 
     private Integer getNumberChildren02_lag1() {
         if (model != null) {
-            if (benefitUnit==null)
-                throw new RuntimeException("attempt to access unassigned benefit unit");
-            return benefitUnit.getNumberChildren02_lag1();
+            return (demNChildren02L1 != null) ? demNChildren02L1 : 0;
         } else {
             if (i_demNchild0to2L1==null)
                 throw new RuntimeException("attempt to access unassigned numberChildren02Local_lag1");

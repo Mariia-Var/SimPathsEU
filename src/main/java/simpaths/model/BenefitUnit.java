@@ -77,8 +77,6 @@ public class BenefitUnit implements EventListener, IDoubleSource, Weight, Compar
     @Transient private Integer yPvrtyFlagL1;
     @Transient private Indicator i_demNChild0to2L1;                //Lag(1) of d_children_3under;
     @Transient private Indicator dem4to12L1;                //Lag(1) of d_children_4_12;
-    @Transient private Integer demNChildren02L1; //Lag(1) of the number of children aged 0-2 in the household
-    @Transient private Integer demNChildAllL1; //Lag(1) of the number of children of all ages in the household
     private Double xChildCareWeek;
     private Double xCareWeek;
     private Integer careProvidedFlag;
@@ -88,7 +86,6 @@ public class BenefitUnit implements EventListener, IDoubleSource, Weight, Compar
     @Enumerated(EnumType.STRING) private Ydses_c5 yHhQuintilesMonthC5;
     @Transient private Double i_yNonBenHhGrossAsinh;
     private Dhhtp_c4 demCompHhC4;
-    @Transient private Dhhtp_c4 demCompHhC4L1;
     private String demCreatedByConstructor;
     private Boolean wealthPrptyFlag; // are any of the individuals in the benefit unit a homeowner? True / false
     @Transient ArrayList<Triple<Les_c7_covid, Double, Integer>> covid19MonthlyStateAndGrossIncomeAndWorkHoursTripleMale = new ArrayList<>();
@@ -196,8 +193,6 @@ public class BenefitUnit implements EventListener, IDoubleSource, Weight, Compar
         this.statSeed = statSeed;
         innovations = new Innovations(9, statSeed);
 
-        this.demNChildAllL1 = 0;
-        this.demNChildren02L1 = 0;
         this.i_demNChild0to2L1 = Indicator.False;
         this.dem4to12L1 = Indicator.False;
         this.xChildCareWeek = 0.0;
@@ -293,8 +288,6 @@ public class BenefitUnit implements EventListener, IDoubleSource, Weight, Compar
                     originalBenefitUnit.getPensionWealth(false),
                     originalBenefitUnit.getHousingWealth(false)
             );
-        this.demNChildAllL1 = originalBenefitUnit.demNChildAllL1;
-        this.demNChildren02L1 = originalBenefitUnit.demNChildren02L1;
         this.i_demNChild0to2L1 = originalBenefitUnit.i_demNChild0to2L1;
         this.dem4to12L1 = originalBenefitUnit.dem4to12L1;
         this.xChildCareWeek = originalBenefitUnit.xChildCareWeek;
@@ -302,7 +295,6 @@ public class BenefitUnit implements EventListener, IDoubleSource, Weight, Compar
         this.careProvidedFlag = originalBenefitUnit.careProvidedFlag;
         this.demRgn = originalBenefitUnit.demRgn;
         this.yHhQuintilesMonthC5 = originalBenefitUnit.getYdses_c5();
-        this.demCompHhC4L1 = originalBenefitUnit.demCompHhC4L1;
         this.wealthPrptyFlag = originalBenefitUnit.wealthPrptyFlag;
         demCreatedByConstructor = Objects.requireNonNullElse(originalBenefitUnit.demCreatedByConstructor,"CopyConstructor");
         i_yNonBenHhGrossAsinh = Objects.requireNonNullElse(originalBenefitUnit.i_yNonBenHhGrossAsinh, 0.0);
@@ -367,7 +359,6 @@ public class BenefitUnit implements EventListener, IDoubleSource, Weight, Compar
 
         if (getNumberChildrenAll()==0)
             xChildCareWeek = 0.0;
-        demCompHhC4L1 = getDhhtp_c4();
 
         // clean-up odd ends
         if (getYdses_c5() == null) {
@@ -418,14 +409,11 @@ public class BenefitUnit implements EventListener, IDoubleSource, Weight, Compar
         // lags
         i_demNChild0to2L1 = getIndicatorChildren(0,3);
         dem4to12L1 = getIndicatorChildren(4,12);
-        demNChildAllL1 = getNumberChildrenAll();
-        demNChildren02L1 = getNumberChildren(0,2);
-        demCompHhC4L1 = getDhhtp_c4();
 
         yDispEquivYearL1 = getEquivalisedDisposableIncomeYearly();
         yPvrtyFlagL1 = getAtRiskOfPoverty();
-        // the lags of the income quintile (Ydses_c5_*_L1) and of home ownership (Dhh_owned_L1) are kept per person,
-        // in Person.updateLaggedVariables
+        // the lags of the income quintile (Ydses_c5_*_L1), home ownership (Dhh_owned_L1), number of children (Dnc*_L1)
+        // and household type (Dhhtp_c4_*_L1) are kept per person, in Person.updateLaggedVariables
 
         // random draws
         innovations.getNewDoubleDraws();
@@ -4269,10 +4257,6 @@ public class BenefitUnit implements EventListener, IDoubleSource, Weight, Compar
     public Indicator getIndicatorChildren(int minAge, int maxAge) {
         return (getNumberChildren(minAge, maxAge) > 0) ? Indicator.True : Indicator.False;
     }
-    public Integer getNumberChildrenAll_lag1() {
-        return demNChildAllL1;
-    }
-    public Integer getNumberChildren02_lag1() { return demNChildren02L1; }
     public Indicator getIndicatorChildren03_lag1() { return i_demNChild0to2L1; }
     public Indicator getIndicatorChildren412_lag1() {
         return dem4to12L1;
@@ -4376,10 +4360,6 @@ public class BenefitUnit implements EventListener, IDoubleSource, Weight, Compar
         }
     }
 
-
-    public Dhhtp_c4 getDhhtp_c4_lag1() {
-        return demCompHhC4L1;
-    }
 
     public double getYearlyChangeInLogEDI() {
         if (yDiffDispEquivPrevYear==null)
