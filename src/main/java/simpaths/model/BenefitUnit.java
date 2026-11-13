@@ -86,7 +86,6 @@ public class BenefitUnit implements EventListener, IDoubleSource, Weight, Compar
     @Transient private Match taxDbMatch;
     @Enumerated(EnumType.STRING) private Region demRgn;        //Region of household.  Also used in findDonorHouseholdsByLabour method
     @Enumerated(EnumType.STRING) private Ydses_c5 yHhQuintilesMonthC5;
-    @Transient private Ydses_c5 yHhQuintilesC5L1;
     @Transient private Double i_yNonBenHhGrossAsinh;
     private Dhhtp_c4 demCompHhC4;
     @Transient private Dhhtp_c4 demCompHhC4L1;
@@ -304,7 +303,6 @@ public class BenefitUnit implements EventListener, IDoubleSource, Weight, Compar
         this.careProvidedFlag = originalBenefitUnit.careProvidedFlag;
         this.demRgn = originalBenefitUnit.demRgn;
         this.yHhQuintilesMonthC5 = originalBenefitUnit.getYdses_c5();
-        this.yHhQuintilesC5L1 = originalBenefitUnit.yHhQuintilesC5L1;
         this.demCompHhC4L1 = originalBenefitUnit.demCompHhC4L1;
         this.wealthPrptyFlag = originalBenefitUnit.wealthPrptyFlag;
         this.wealthDhhOwnedL1 = originalBenefitUnit.wealthDhhOwnedL1;
@@ -429,7 +427,7 @@ public class BenefitUnit implements EventListener, IDoubleSource, Weight, Compar
 
         yDispEquivYearL1 = getEquivalisedDisposableIncomeYearly();
         yPvrtyFlagL1 = getAtRiskOfPoverty();
-        yHhQuintilesC5L1 = getYdses_c5();
+        // the lag of the income quintile (Ydses_c5_*_L1) is kept per person, in Person.updateLaggedVariables
 
         // random draws
         innovations.getNewDoubleDraws();
@@ -4354,10 +4352,6 @@ public class BenefitUnit implements EventListener, IDoubleSource, Weight, Compar
 
     public Ydses_c5 getYdses_c5() {
         return yHhQuintilesMonthC5;
-    }
-
-    public Ydses_c5 getYdses_c5_lag1() {
-        return yHhQuintilesC5L1;
     }
 
     public double getTmpHHYpnbihs_dv_asinh() {

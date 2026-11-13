@@ -13,6 +13,7 @@ import simpaths.model.enums.Indicator;
 import simpaths.model.enums.Gender;
 import simpaths.model.enums.Les_c4;
 import simpaths.model.enums.TimeSeriesVariable;
+import simpaths.model.enums.Ydses_c5;
 import simpaths.model.Innovations;
 
 import microsim.statistics.regression.BinomialRegression;
@@ -280,6 +281,20 @@ public class PersonTest {
             testPerson.setDcpst_lag1(Dcpst.Single);
 
             assertEquals(1.0, testPerson.getDoubleValue(Person.DoublesVariables.New_rel_L1));
+        }
+
+        @Test
+        @DisplayName("Ydses_c5 lags read the quintile saved on the person, not the current benefit unit's")
+        public void ydsesLagIsKeptPerPerson() throws Exception {
+            // Saved last year from the parents' unit (Q4); the person now heads a new unit, as after turning 18
+            setPrivateField(testPerson, "yHhQuintilesC5L1", Ydses_c5.Q4);
+            setPrivateField(testPerson, "parentsKnownL1", true);
+            Mockito.when(mockBenefitUnit.getYdses_c5()).thenReturn(Ydses_c5.Q3);
+
+            assertEquals(1.0, testPerson.getDoubleValue(Person.DoublesVariables.Ydses_c5_Q4_L1));
+            assertEquals(0.0, testPerson.getDoubleValue(Person.DoublesVariables.Ydses_c5_Q3_L1));
+            assertEquals(4.0, testPerson.getDoubleValue(Person.DoublesVariables.Ydses_c5_L1));
+            assertEquals(1.0, testPerson.getDoubleValue(Person.DoublesVariables.Parents_known_Ydses_Q4_L1));
         }
     }
 

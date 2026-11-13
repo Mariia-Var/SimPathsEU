@@ -169,6 +169,7 @@ public class Person implements EventListener, IDoubleSource, IIntSource, Weight,
     @Transient private Integer demPartnerNYearL1; //Lag(1) of number of years in partnership
     private Double yNonBenPersGrossMonth; // asinh of personal non-benefit income per month
     @Transient private Double yNonBenPersGrossMonthL1; //Lag(1) of gross personal non-benefit income
+    @Transient private Ydses_c5 yHhQuintilesC5L1; //Lag(1) income quintile of the benefit unit the person was in last year (Ydses_c5_*_L1); kept per person, see updateLaggedVariables
     @Transient private boolean parentsKnownL1; //Lag(1): a mother or father lived in the same household (Parents_known_L1)
     @Transient private Double parentsYpnbL1; //Lag(1) asinh of co-resident parents' summed non-benefit income; null if none
     @Transient private Ydses_c5 parentsYpnbQuintileL1; //Quintile of parentsYpnbL1, cut each year by SimPathsModel; null if none
@@ -413,6 +414,7 @@ public class Person implements EventListener, IDoubleSource, IIntSource, Weight,
         demPartnerStatusL1 = originalPerson.demPartnerStatusL1;
         yNonBenPersGrossMonth = originalPerson.getYpnbihs_dv();
         yNonBenPersGrossMonthL1 = originalPerson.yNonBenPersGrossMonthL1;
+        yHhQuintilesC5L1 = originalPerson.yHhQuintilesC5L1;
         parentsKnownL1 = originalPerson.parentsKnownL1;
         parentsYpnbL1 = originalPerson.parentsYpnbL1;
         yMiscPersGrossMonth = Objects.requireNonNullElse(originalPerson.yMiscPersGrossMonth, 0.0);
@@ -1829,6 +1831,9 @@ public class Person implements EventListener, IDoubleSource, IIntSource, Weight,
         eduHighestC4L1 = eduHighestC4; //Update lag(1) of education level
         eduDedL1 = eduSpellFlag; //Update lag(1) of education level
         yNonBenPersGrossMonthL1 = getYpnbihs_dv(); //Update lag(1) of gross personal non-benefit income
+        // Lag(1) income quintile, saved per person as Stata's l.ydses_c5 is. This runs before ageing, while the person is
+        // still in last year's benefit unit, so someone who turns 18 and moves to a new unit keeps their parents' quintile.
+        yHhQuintilesC5L1 = benefitUnit.getYdses_c5();
         updateParentsLaggedVariables();
         labHrsWorkEnumWeekL1 = getLabourSupplyWeekly(); // Lag(1) of labour supply
         yBenReceivedFlagL1 = yBenReceivedFlag; // Lag(1) of flag indicating if individual receives benefits
@@ -4924,9 +4929,7 @@ public class Person implements EventListener, IDoubleSource, IIntSource, Weight,
 
     private Ydses_c5 getYdses_c5_lag1() {
         if (model!=null) {
-            if (benefitUnit==null)
-                throw new RuntimeException("attempt to access unassigned benefit unit");
-            return benefitUnit.getYdses_c5_lag1();
+            return yHhQuintilesC5L1;
         } else {
             if (i_yHhQuintilesC5==null)
                 throw new RuntimeException("attempt to access unassigned ydses_c5_lag1Local");
