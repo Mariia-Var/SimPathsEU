@@ -3,6 +3,7 @@ package simpaths.experiment;
 
 // import Java packages
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -612,48 +613,20 @@ public class SimPathsCollector extends AbstractSimulationCollectorManager implem
 
 
     /*
-     *This method calculates quintiles of household gross income
-     *
+     * Cut-offs of the benefit-unit income quintiles (Ydses_c5): equivalised gross non-benefit income of the
+     * responsible adults, asinh. BenefitUnit.calculateBUIncome assigns the quintiles from them.
      */
     private class Ydses_c5 implements IDoubleSource {
 
         final SimPathsModel model = (SimPathsModel) getManager();
 
-        private CrossSection.Double householdsGrossIncomesCS;
-
-        private PercentileArrayFunction percentileFunctionHouseholdsGrossIncomes;
-
-        private double p50HouseholdsGrossIncome;
-
-        private double p20HouseholdsGrossIncome;
-
-        private double p40HouseholdsGrossIncome;
-
-        private double p60HouseholdsGrossIncome;
-
-        private double p80HouseholdsGrossIncome;
-
         public void update() {
 
-            //Ydses_c5
-            householdsGrossIncomesCS = new CrossSection.Double(model.getBenefitUnits(), BenefitUnit.class, "getTmpHHYpnbihs_dv_asinh", true); //Populate CS
-
-            percentileFunctionHouseholdsGrossIncomes = new PercentileArrayFunction(householdsGrossIncomesCS); //Get p50
-            percentileFunctionHouseholdsGrossIncomes.updateSource();
-            p50HouseholdsGrossIncome = percentileFunctionHouseholdsGrossIncomes.getDoubleValue(PercentileArrayFunction.Variables.P50); //Retrieve P50 value
-            p20HouseholdsGrossIncome = percentileFunctionHouseholdsGrossIncomes.getDoubleValue(PercentileArrayFunction.Variables.P20);
-            p40HouseholdsGrossIncome = percentileFunctionHouseholdsGrossIncomes.getDoubleValue(PercentileArrayFunction.Variables.P40);
-            p60HouseholdsGrossIncome = percentileFunctionHouseholdsGrossIncomes.getDoubleValue(PercentileArrayFunction.Variables.P60);
-            p80HouseholdsGrossIncome = percentileFunctionHouseholdsGrossIncomes.getDoubleValue(PercentileArrayFunction.Variables.P80);
-//			System.out.println("P50 value from the percentile function: " + p50HouseholdsGrossIncome + " P20: " + p20HouseholdsGrossIncome + " P40: " + p40HouseholdsGrossIncome +
-//								" P60: " + p60HouseholdsGrossIncome + " P80: " + p80HouseholdsGrossIncome);
-
-            stats.setYdses_p20(p20HouseholdsGrossIncome);
-            stats.setYdses_p40(p40HouseholdsGrossIncome);
-            stats.setYdses_p60(p60HouseholdsGrossIncome);
-            stats.setYdses_p80(p80HouseholdsGrossIncome);
-
-
+            double[] cutoffs = ydsesCutoffs(model.getBenefitUnits());
+            stats.setYdses_p20(cutoffs[0]);
+            stats.setYdses_p40(cutoffs[1]);
+            stats.setYdses_p60(cutoffs[2]);
+            stats.setYdses_p80(cutoffs[3]);
         }
 
 
@@ -663,6 +636,32 @@ public class SimPathsCollector extends AbstractSimulationCollectorManager implem
             return 0;
         }
 
+    }
+
+    /**
+     * The Ydses_c5 cut-offs (P20, P40, P60, P80), ranked over persons as the estimation ranks them. The estimation
+     * cuts ydses_c5 with an unweighted xtile over everyone but dependent children
+     * ({@code 02_create_variables_<CC>.do}), so each unit's income counts once for each of its adults: twice for a
+     * couple, once for a single.
+     */
+    static double[] ydsesCutoffs(Collection<BenefitUnit> benefitUnits) {
+        int nPersons = 0;
+        for (BenefitUnit benefitUnit : benefitUnits)
+            nPersons += benefitUnit.getNumberAdults();
+        double[] values = new double[nPersons];
+        int ii = 0;
+        for (BenefitUnit benefitUnit : benefitUnits) {
+            double income = benefitUnit.getTmpHHYpnbihs_dv_asinh();
+            for (int aa = 0; aa < benefitUnit.getNumberAdults(); aa++)
+                values[ii++] = income;
+        }
+        PercentileArrayFunction percentiles = new PercentileArrayFunction(() -> values);
+        percentiles.updateSource();
+        return new double[]{
+                percentiles.getDoubleValue(PercentileArrayFunction.Variables.P20),
+                percentiles.getDoubleValue(PercentileArrayFunction.Variables.P40),
+                percentiles.getDoubleValue(PercentileArrayFunction.Variables.P60),
+                percentiles.getDoubleValue(PercentileArrayFunction.Variables.P80)};
     }
 
     private class EDI implements IDoubleSource {
