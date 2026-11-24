@@ -130,3 +130,9 @@ putexcel A9=("Years")       B9=("${min_year}-${max_year}")
 putexcel A10=("Do-file")    B10=("02_inSchool_targets_initpopdataEU_NotPopProjAgeNormalised.do")
 putexcel A11=("Produced")   B11=("`today'")
 
+
+* --- CLEAN UP ------------------------------------------------------------- *
+* The workbook is the only output: erase the working data, then the
+* working-data folder if nothing else is left in it
+erase "${dir_working_data}/student_shares_${country}_initpopdata.dta"
+capture rmdir "${dir_working_data}"

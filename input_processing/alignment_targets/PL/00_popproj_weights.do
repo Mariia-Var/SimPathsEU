@@ -19,6 +19,8 @@
 *                  - Reads the official population by year x gender x
 *                    region x single year of age, ages popproj_top_age and
 *                    above in one cell, and saves it to dir_working_data
+*                    (popproj_cells_<country>.dta, which the calling
+*                    do-file erases when it is done)
 *                  - Defines the program popproj_weight, which adds
 *                    wgtPopProj = wgtCrossMainSurvey x official count /
 *                    survey weighted count in the person's cell

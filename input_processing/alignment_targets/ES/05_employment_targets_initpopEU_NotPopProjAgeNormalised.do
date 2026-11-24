@@ -224,3 +224,10 @@ putexcel A10=("Country")    B10=("${country}")
 putexcel A11=("Years")      B11=("${min_year}-${max_year}")
 putexcel A12=("Do-file")    B12=("05_employment_targets_initpopEU_NotPopProjAgeNormalised.do")
 putexcel A13=("Produced")   B13=("`today'")
+
+
+* --- CLEAN UP ------------------------------------------------------------- *
+* The workbook is the only output: erase the working data, then the
+* working-data folder if nothing else is left in it
+erase "${dir_working_data}/bu_empl_shares_${country}_allsubgroups_initpopdata.dta"
+capture rmdir "${dir_working_data}"

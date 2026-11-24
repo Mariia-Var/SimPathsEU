@@ -142,3 +142,12 @@ putexcel A9=("Country")     B9=("${country}")
 putexcel A10=("Years")      B10=("${min_year}-${max_year}")
 putexcel A11=("Do-file")    B11=("03_disability_targets_initpopdataEU.do")
 putexcel A12=("Produced")   B12=("`today'")
+
+
+* --- CLEAN UP ------------------------------------------------------------- *
+* The workbook is the only output: erase the working data, then the
+* working-data folder and DoFilesTargets if nothing else is left in them
+erase "${dir_working_data}/disability_shares_${country}_initpopdata_popproj.dta"
+erase "${dir_working_data}/popproj_cells_${country}.dta"
+capture rmdir "${dir_working_data}"
+capture rmdir "$dir_w/input/${country}/DoFilesTargets"
