@@ -3,7 +3,7 @@
 * SECTION:        ALIGNMENT PROCEDURES
 *
 * AUTHORS:        Mariia Vartuzova (MV)
-* LAST UPDATE:    19/11/2026 (MV)
+* LAST UPDATE:    24/11/2026 (MV)
 * COUNTRY:        ES (Spain)
 *
 * DATA:           Initial populations
@@ -17,6 +17,14 @@
 *                  - Aggregates to employment shares by group and year
 *                  - Exports the results to Excel (one sheet per group)
 *
+* WEIGHTS:        Each person's wgtCrossMainSurvey is multiplied by the
+*                official count over the survey weighted count in their
+*                gender x region x age cell (00_popproj_weights.do). The
+*                target is then computed on the age mix of the official
+*                population, which SimPaths simulates, not on the
+*                survey's own mix. The version on the survey's mix is
+*                kept as 05_employment_targets_initpopEU_NotPopProjAgeNormalised.do.
+*
 * NOTE:           This EU version uses refactored variable names from the
 *                initial populations (e.g., idPers, labC4, wgtCrossMainSurvey).
 *
@@ -26,9 +34,11 @@
 *
 * SET-UP:         1. Set global dir_w to the root of this SimPaths project
 *                 2. The initial populations are read from
-*                    input/<country>/InitialPopulations of that project. The
-*                    workbook is written to input/<country>/DoFilesTargets;
-*                    copy it to input/<country>/ for SimPaths to use it
+*                    input/<country>/InitialPopulations of that project, and
+*                    the official population from
+*                    input/<country>/align_popProjections.xlsx. The workbook
+*                    is written to input/<country>/DoFilesTargets; copy it to
+*                    input/<country>/ for SimPaths to use it
 *
 *******************************************************************************/
 
@@ -54,10 +64,13 @@ global dir_output       "$dir_w/input/${country}/DoFilesTargets"
 capture mkdir "${dir_output}"
 capture mkdir "${dir_working_data}"
 
+* Official population by cell, and the program popproj_weight
+do "${dir_w}/input_processing/alignment_targets/${country}/00_popproj_weights.do"
+
 
 * Initialise file that will store BU-level employment shares for all years
 clear
-save "${dir_working_data}/bu_empl_shares_${country}_allsubgroups_initpopdata.dta", emptyok replace
+save "${dir_working_data}/bu_empl_shares_${country}_allsubgroups_initpopdata_popproj.dta", emptyok replace
 
 * ========================================================================== *
 
@@ -69,6 +82,9 @@ foreach y of numlist $min_year/$max_year {
 	import delimited using "${dir_input_data}/`file'", clear case(preserve)
 
 	bys idPers: keep if _n == 1 // keep one obs per idPers
+
+	* Weight on the official gender x region x age mix: wgtPopProj
+	popproj_weight `y'
 
 	* Identify responsible males/females (18+)
 	gen byte is_resp_male   = (demAge >= 18 & demMaleFlag == 1)
@@ -147,7 +163,7 @@ foreach y of numlist $min_year/$max_year {
 
 
 	* BU-level weight: sum of person-level weights within each BU
-	bys idBu: egen double bu_w = total(wgtCrossMainSurvey)
+	bys idBu: egen double bu_w = total(wgtPopProj)
 
 	* Keep one record per BU (so employment shares are BU-level, not person-level)
 	bys idBu: gen byte bu_tag = _n == 1
@@ -158,9 +174,9 @@ foreach y of numlist $min_year/$max_year {
 	gen year = `y'
 
 	* Append to cumulative file for all years
-	append using "${dir_working_data}/bu_empl_shares_${country}_allsubgroups_initpopdata.dta"
+	append using "${dir_working_data}/bu_empl_shares_${country}_allsubgroups_initpopdata_popproj.dta"
 	duplicates drop
-	save "${dir_working_data}/bu_empl_shares_${country}_allsubgroups_initpopdata.dta", replace
+	save "${dir_working_data}/bu_empl_shares_${country}_allsubgroups_initpopdata_popproj.dta", replace
 
 }
 
@@ -169,12 +185,16 @@ foreach y of numlist $min_year/$max_year {
 * -------------------------------------------------------------------------- *
 
 * Load aggregated BU-level employment shares for all years
-use "${dir_working_data}/bu_empl_shares_${country}_allsubgroups_initpopdata.dta", clear
+use "${dir_working_data}/bu_empl_shares_${country}_allsubgroups_initpopdata_popproj.dta", clear
 
 * Sort by year for neat export
 sort year
 
 * Create/overwrite Excel file that will hold all sheets
+* Start from a new workbook. putexcel applies replace only at its first
+* write, so an existing workbook would otherwise be modified, and its styles
+* duplicated on every run (until Apache POI in SimPaths rejects the file)
+capture erase "${dir_output}/alignment_targets_employment.xlsx"
 putexcel set "${dir_output}/alignment_targets_employment.xlsx", replace
 
 * Identify all BU group codes
@@ -212,10 +232,18 @@ putexcel A3=("Population")  B3=("BUs with at least one responsible adult (demAge
 putexcel A4=("Groups")      B4=("Couples, SingleDep_Males, SingleDep_Females, Single_male, Single_female, SingleAC_Males, SingleAC_Females")
 putexcel A5=("At-risk def") B5=("Age 16-75, not student (labC4 != 2), not retired (labC4 != 4), not disabled (healthDsblLongtermFlag != 1)")
 putexcel A6=("Frac employ") B6=("(num employed responsible adults) / (num responsible adults) per BU; 0, 0.5, or 1 for couples")
-putexcel A7=("Weighting")   B7=("BU-level weight = sum of person weights (wgtCrossMainSurvey) within the BU")
+putexcel A7=("Weighting")   B7=("BU-level weight = sum of the members' wgtPopProj = wgtCrossMainSurvey x official count / survey weighted count in the person's gender x region x age cell (ages ${popproj_top_age}+ pooled; align_popProjections.xlsx, 00_popproj_weights.do)")
 putexcel A8=("Note")        B8=("Mirrors ActivityAlignmentV2 matchesSubgroup() and BenefitUnit.fracEmployed() logic in SimPaths")
 putexcel A9=("Source")      B9=("EU-SILC-based SimPaths initial populations")
 putexcel A10=("Country")    B10=("${country}")
 putexcel A11=("Years")      B11=("${min_year}-${max_year}")
 putexcel A12=("Do-file")    B12=("05_employment_targets_initpopEU.do")
 putexcel A13=("Produced")   B13=("`today'")
+
+
+* --- CLEAN UP ------------------------------------------------------------- *
+* The workbook is the only output: erase the working data, then the
+* working-data folder if nothing else is left in it
+erase "${dir_working_data}/bu_empl_shares_${country}_allsubgroups_initpopdata_popproj.dta"
+erase "${dir_working_data}/popproj_cells_${country}.dta"
+capture rmdir "${dir_working_data}"

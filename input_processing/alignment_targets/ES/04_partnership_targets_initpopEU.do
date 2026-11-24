@@ -3,7 +3,7 @@
 * SECTION:        ALIGNMENT PROCEDURES
 *
 * AUTHORS:        Mariia Vartuzova (MV)
-* LAST UPDATE:    19/11/2026 (MV)
+* LAST UPDATE:    24/11/2026 (MV)
 * COUNTRY:        ES (Spain)
 *
 * DATA:           Initial populations
@@ -19,6 +19,14 @@
 *                  - Computes the weighted share of partnered adults aged 18+
 *                  - Exports the results to Excel
 *
+* WEIGHTS:        Each person's wgtCrossMainSurvey is multiplied by the
+*                official count over the survey weighted count in their
+*                gender x region x age cell (00_popproj_weights.do). The
+*                target is then computed on the age mix of the official
+*                population, which SimPaths simulates, not on the
+*                survey's own mix. The version on the survey's mix is
+*                kept as 04_partnership_targets_initpopEU_NotPopProjAgeNormalised.do.
+*
 * NOTE:           This EU version uses refactored variable names from the
 *                initial populations (e.g., idPers, idBu, idMother, idFather,
 *                wgtCrossMainSurvey).
@@ -29,9 +37,11 @@
 *
 * SET-UP:         1. Set global dir_w to the root of this SimPaths project
 *                 2. The initial populations are read from
-*                    input/<country>/InitialPopulations of that project. The
-*                    workbook is written to input/<country>/DoFilesTargets;
-*                    copy it to input/<country>/ for SimPaths to use it
+*                    input/<country>/InitialPopulations of that project, and
+*                    the official population from
+*                    input/<country>/align_popProjections.xlsx. The workbook
+*                    is written to input/<country>/DoFilesTargets; copy it to
+*                    input/<country>/ for SimPaths to use it
 *
 *******************************************************************************/
 
@@ -57,10 +67,13 @@ global dir_output       "$dir_w/input/${country}/DoFilesTargets"
 capture mkdir "${dir_output}"
 capture mkdir "${dir_working_data}"
 
+* Official population by cell, and the program popproj_weight
+do "${dir_w}/input_processing/alignment_targets/${country}/00_popproj_weights.do"
+
 
 * Initialise file that will store partnered shares for all years
 clear
-save "${dir_working_data}/partnered_shares_${country}_initpopdata.dta", emptyok replace
+save "${dir_working_data}/partnered_shares_${country}_initpopdata_popproj.dta", emptyok replace
 
 * ========================================================================== *
 
@@ -73,12 +86,15 @@ foreach y of numlist $min_year/$max_year {
 
 	bys idPers: keep if _n == 1 // keep one obs per idPers
 
+	* Weight on the official gender x region x age mix: wgtPopProj
+	popproj_weight `y'
+
 	* Ensure ID variables are numeric (needed for joinby and merge)
 	destring idPers idBu idMother idFather, replace force
 
 	* Keep only adults eligible for partnership and required variables
 	keep if demAge >= 18
-	keep idBu idPers idMother idFather wgtCrossMainSurvey
+	keep idBu idPers idMother idFather wgtPopProj
 
 	* Save full eligible population for later merge
 	tempfile eligible_pop
@@ -118,13 +134,13 @@ foreach y of numlist $min_year/$max_year {
 	replace partnered = 0 if missing(partnered)
 
 	* Alignment target: weighted share of partnered adults
-	collapse (mean) partnered_share = partnered [pw = wgtCrossMainSurvey]
+	collapse (mean) partnered_share = partnered [pw = wgtPopProj]
 	gen year = `y'
 
 	* Append to cumulative file for all years
-	append using "${dir_working_data}/partnered_shares_${country}_initpopdata.dta"
+	append using "${dir_working_data}/partnered_shares_${country}_initpopdata_popproj.dta"
 	duplicates drop
-	save "${dir_working_data}/partnered_shares_${country}_initpopdata.dta", replace
+	save "${dir_working_data}/partnered_shares_${country}_initpopdata_popproj.dta", replace
 
 }
 
@@ -132,12 +148,16 @@ foreach y of numlist $min_year/$max_year {
 * POST-PROCESSING: export aggregated results to Excel
 * -------------------------------------------------------------------------- *
 
-use "${dir_working_data}/partnered_shares_${country}_initpopdata.dta", clear
+use "${dir_working_data}/partnered_shares_${country}_initpopdata_popproj.dta", clear
 
 * Sort by year for neat export
 sort year
 
 * Create/overwrite Excel file that will hold all sheets
+* Start from a new workbook. putexcel applies replace only at its first
+* write, so an existing workbook would otherwise be modified, and its styles
+* duplicated on every run (until Apache POI in SimPaths rejects the file)
+capture erase "${dir_output}/alignment_targets_partnered_share.xlsx"
 putexcel set "${dir_output}/alignment_targets_partnered_share.xlsx", replace
 
 * Build separate matrices for year and share (written with explicit Excel formats)
@@ -162,10 +182,18 @@ putexcel A2=("Target")      B2=("Share of partnered persons among adults aged 18
 putexcel A3=("Population")  B3=("All persons aged 18+ in the initial population")
 putexcel A4=("Definition")  B4=("Partnered = at least one non-parent adult co-resident in the same benefit unit (BU co-residency logic, not idPartner field)")
 putexcel A5=("Age filter")  B5=("demAge >= 18")
-putexcel A6=("Weighting")   B6=("Person-level population weights (wgtCrossMainSurvey)")
+putexcel A6=("Weighting")   B6=("wgtPopProj = wgtCrossMainSurvey x official count / survey weighted count in the person's gender x region x age cell (ages ${popproj_top_age}+ pooled; align_popProjections.xlsx, 00_popproj_weights.do)")
 putexcel A7=("Note")        B7=("Partnership inferred from BU co-residency consistent with SimPaths getPartner() logic; idPartner is not used")
 putexcel A8=("Source")      B8=("EU-SILC-based SimPaths initial populations")
 putexcel A9=("Country")     B9=("${country}")
 putexcel A10=("Years")      B10=("${min_year}-${max_year}")
 putexcel A11=("Do-file")    B11=("04_partnership_targets_initpopEU.do")
 putexcel A12=("Produced")   B12=("`today'")
+
+
+* --- CLEAN UP ------------------------------------------------------------- *
+* The workbook is the only output: erase the working data, then the
+* working-data folder if nothing else is left in it
+erase "${dir_working_data}/partnered_shares_${country}_initpopdata_popproj.dta"
+erase "${dir_working_data}/popproj_cells_${country}.dta"
+capture rmdir "${dir_working_data}"

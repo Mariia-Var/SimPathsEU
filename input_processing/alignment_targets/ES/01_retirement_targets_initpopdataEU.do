@@ -3,7 +3,7 @@
 * SECTION:        ALIGNMENT PROCEDURES
 *
 * AUTHORS:        Mariia Vartuzova (MV)
-* LAST UPDATE:    19/11/2026 (MV)
+* LAST UPDATE:    24/11/2026 (MV)
 * COUNTRY:        ES (Spain)
 *
 * DATA:           Initial populations
@@ -22,6 +22,14 @@
 *                aligning (RetirementAlignment.java) and in the output
 *                (AlignmentStatistics.java).
 *
+* WEIGHTS:        Each person's wgtCrossMainSurvey is multiplied by the
+*                official count over the survey weighted count in their
+*                gender x region x age cell (00_popproj_weights.do). The
+*                target is then computed on the age mix of the official
+*                population, which SimPaths simulates, not on the
+*                survey's own mix. The version on the survey's mix is
+*                kept as 01_retirement_targets_initpopdataEU_NotPopProjAgeNormalised.do.
+*
 * NOTE:           This EU version uses refactored variable names from the
 *                initial populations (e.g., idPers, labC4, wgtCrossMainSurvey).
 *
@@ -31,9 +39,11 @@
 *
 * SET-UP:         1. Set global dir_w to the root of this SimPaths project
 *                 2. The initial populations are read from
-*                    input/<country>/InitialPopulations of that project. The
-*                    workbook is written to input/<country>/DoFilesTargets;
-*                    copy it to input/<country>/ for SimPaths to use it
+*                    input/<country>/InitialPopulations of that project, and
+*                    the official population from
+*                    input/<country>/align_popProjections.xlsx. The workbook
+*                    is written to input/<country>/DoFilesTargets; copy it to
+*                    input/<country>/ for SimPaths to use it
 *
 *******************************************************************************/
 
@@ -64,11 +74,14 @@ global dir_output       "$dir_w/input/${country}/DoFilesTargets"
 capture mkdir "${dir_output}"
 capture mkdir "${dir_working_data}"
 
+* Official population by cell, and the program popproj_weight
+do "${dir_w}/input_processing/alignment_targets/${country}/00_popproj_weights.do"
+
 
 * Initialise file that will store retirement shares for all years. Start from
 * an empty file, so that shares saved by an earlier run are not exported again.
 clear
-save "${dir_working_data}/retirement_shares_${country}_initpopdata.dta", emptyok replace
+save "${dir_working_data}/retirement_shares_${country}_initpopdata_popproj.dta", emptyok replace
 
 
 * ========================================================================== *
@@ -82,18 +95,21 @@ foreach y of numlist $min_year/$max_year {
 
 	bys idPers: keep if _n == 1 // keep one obs per idPers
 
+	* Weight on the official gender x region x age mix: wgtPopProj
+	popproj_weight `y'
+
 	// Alignment target: share of retired persons among those aged
 	// min_age_to_retire or older with non-missing labC4
 	gen byte isRetired = (labC4 == 4)
     collapse (mean) retired_share = isRetired ///
-        if (labC4 != . & demAge != . & demAge >= ${min_age_to_retire}) [pw = wgtCrossMainSurvey]
+        if (labC4 != . & demAge != . & demAge >= ${min_age_to_retire}) [pw = wgtPopProj]
 
 	gen year = `y'
 
 	* Append to cumulative file for all years
-	append using "${dir_working_data}/retirement_shares_${country}_initpopdata.dta"
+	append using "${dir_working_data}/retirement_shares_${country}_initpopdata_popproj.dta"
 	duplicates drop
-	save "${dir_working_data}/retirement_shares_${country}_initpopdata.dta", replace
+	save "${dir_working_data}/retirement_shares_${country}_initpopdata_popproj.dta", replace
 
 }
 
@@ -102,12 +118,16 @@ foreach y of numlist $min_year/$max_year {
 * -------------------------------------------------------------------------- *
 
 
-use "${dir_working_data}/retirement_shares_${country}_initpopdata.dta", clear
+use "${dir_working_data}/retirement_shares_${country}_initpopdata_popproj.dta", clear
 
 * Sort by year for neat export
 sort year
 
 * Create/overwrite Excel file that will hold all sheets
+* Start from a new workbook. putexcel applies replace only at its first
+* write, so an existing workbook would otherwise be modified, and its styles
+* duplicated on every run (until Apache POI in SimPaths rejects the file)
+capture erase "${dir_output}/alignment_targets_retirement.xlsx"
 putexcel set "${dir_output}/alignment_targets_retirement.xlsx", replace
 
 
@@ -133,9 +153,17 @@ putexcel A2=("Target")      B2=("Share of retired persons among persons aged ${m
 putexcel A3=("Population")  B3=("Persons in the initial population aged ${min_age_to_retire}+ with non-missing labC4")
 putexcel A4=("Definition")  B4=("labC4 == 4 (Retired)")
 putexcel A5=("Age filter")  B5=("demAge >= ${min_age_to_retire} (MIN_AGE_TO_RETIRE in parameters.xlsx; RetirementAlignment and AlignmentStatistics use the same population)")
-putexcel A6=("Weighting")   B6=("Population weights (wgtCrossMainSurvey)")
+putexcel A6=("Weighting")   B6=("wgtPopProj = wgtCrossMainSurvey x official count / survey weighted count in the person's gender x region x age cell (ages ${popproj_top_age}+ pooled; align_popProjections.xlsx, 00_popproj_weights.do)")
 putexcel A7=("Source")      B7=("EU-SILC-based SimPaths initial populations")
 putexcel A8=("Country")     B8=("${country}")
 putexcel A9=("Years")       B9=("${min_year}-${max_year}")
 putexcel A10=("Do-file")    B10=("01_retirement_targets_initpopdataEU.do")
 putexcel A11=("Produced")   B11=("`today'")
+
+
+* --- CLEAN UP ------------------------------------------------------------- *
+* The workbook is the only output: erase the working data, then the
+* working-data folder if nothing else is left in it
+erase "${dir_working_data}/retirement_shares_${country}_initpopdata_popproj.dta"
+erase "${dir_working_data}/popproj_cells_${country}.dta"
+capture rmdir "${dir_working_data}"
