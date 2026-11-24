@@ -97,6 +97,10 @@ use "${dir_working_data}/student_shares_${country}_initpopdata.dta", clear
 sort year
 
 * Create/overwrite Excel file that will hold all sheets
+* Start from a new workbook. putexcel applies replace only at its first
+* write, so an existing workbook would otherwise be modified, and its styles
+* duplicated on every run (until Apache POI in SimPaths rejects the file)
+capture erase "${dir_output}/alignment_targets_inSchool_NotPopProjAgeNormalised.xlsx"
 putexcel set "${dir_output}/alignment_targets_inSchool_NotPopProjAgeNormalised.xlsx", replace
 
 

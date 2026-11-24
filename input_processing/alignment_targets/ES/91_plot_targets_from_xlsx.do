@@ -9,8 +9,8 @@
 // from the ES Excel target workbooks, plots them across time, and exports
 // the graphs to the TargetsPlots directory.
 //
-// The workbooks read here are the ones 01-05 in this folder write to the
-// country root.
+// The workbooks read here are the ones produced by 01-05 in this folder and
+// then copied to the country root.
 //
 // Inputs:
 //   input/ES/alignment_targets_disability.xlsx

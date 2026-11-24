@@ -36,8 +36,8 @@
 *                    input/<country>/InitialPopulations of that project, and
 *                    the official population from
 *                    input/<country>/align_popProjections.xlsx. The workbook
-*                    is written straight to input/<country>/, where SimPaths
-*                    reads it
+*                    is written to input/<country>/DoFilesTargets; copy it to
+*                    input/<country>/ for SimPaths to use it
 *
 *******************************************************************************/
 
@@ -57,10 +57,10 @@ global max_year 2023
 * Directory structure
 global dir_input_data   "$dir_w/input/${country}/InitialPopulations"
 global dir_working_data "$dir_w/input/${country}/DoFilesTargets/working_data"
-global dir_output       "$dir_w/input/${country}"
+global dir_output       "$dir_w/input/${country}/DoFilesTargets"
 
-* Create the working-data folders if they do not exist yet
-capture mkdir "$dir_w/input/${country}/DoFilesTargets"
+* Create the output folders if they do not exist yet
+capture mkdir "${dir_output}"
 capture mkdir "${dir_working_data}"
 
 * Official population by cell, and the program popproj_weight
@@ -108,6 +108,10 @@ use "${dir_working_data}/student_shares_${country}_initpopdata_popproj.dta", cle
 sort year
 
 * Create/overwrite Excel file that will hold all sheets
+* Start from a new workbook. putexcel applies replace only at its first
+* write, so an existing workbook would otherwise be modified, and its styles
+* duplicated on every run (until Apache POI in SimPaths rejects the file)
+capture erase "${dir_output}/alignment_targets_inSchool.xlsx"
 putexcel set "${dir_output}/alignment_targets_inSchool.xlsx", replace
 
 
@@ -143,8 +147,7 @@ putexcel A11=("Produced")   B11=("`today'")
 
 * --- CLEAN UP ------------------------------------------------------------- *
 * The workbook is the only output: erase the working data, then the
-* working-data folder and DoFilesTargets if nothing else is left in them
+* working-data folder if nothing else is left in it
 erase "${dir_working_data}/student_shares_${country}_initpopdata_popproj.dta"
 erase "${dir_working_data}/popproj_cells_${country}.dta"
 capture rmdir "${dir_working_data}"
-capture rmdir "$dir_w/input/${country}/DoFilesTargets"
