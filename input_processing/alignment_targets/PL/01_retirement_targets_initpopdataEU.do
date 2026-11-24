@@ -3,7 +3,7 @@
 * SECTION:        ALIGNMENT PROCEDURES
 *
 * AUTHORS:        Codex
-* LAST UPDATE:    19/11/2026
+* LAST UPDATE:    24/11/2026
 * COUNTRY:        EU
 *
 * DATA:           Initial populations
@@ -22,6 +22,14 @@
 *                aligning (RetirementAlignment.java) and in the output
 *                (AlignmentStatistics.java).
 *
+* WEIGHTS:        Each person's wgtCrossMainSurvey is multiplied by the
+*                official count over the survey weighted count in their
+*                gender x region x age cell (00_popproj_weights.do). The
+*                target is then computed on the age mix of the official
+*                population, which SimPaths simulates, not on the
+*                survey's own mix. The version on the survey's mix is
+*                kept as 01_retirement_targets_initpopdataEU_NotPopProjAgeNormalised.do.
+*
 * NOTE:           This EU version uses refactored variable names from the
 *                initial populations (e.g., idPers, labC4, wgtCrossMainSurvey).
 *
@@ -31,9 +39,11 @@
 *
 * SET-UP:         1. Set global dir_w to the root of this SimPaths project
 *                 2. The initial populations are read from
-*                    input/<country>/InitialPopulations of that project. The
-*                    workbook is written to input/<country>/DoFilesTargets;
-*                    copy it to input/<country>/ for SimPaths to use it
+*                    input/<country>/InitialPopulations of that project, and
+*                    the official population from
+*                    input/<country>/align_popProjections.xlsx. The workbook
+*                    is written straight to input/<country>/, where SimPaths
+*                    reads it
 *
 *******************************************************************************/
 
@@ -59,17 +69,20 @@ global min_age_to_retire 50
 * Directory structure
 global dir_input_data   "$dir_w/input/${country}/InitialPopulations"
 global dir_working_data "$dir_w/input/${country}/DoFilesTargets/working_data"
-global dir_output       "$dir_w/input/${country}/DoFilesTargets"
+global dir_output       "$dir_w/input/${country}"
 
-* Create the output folders if they do not exist yet
-capture mkdir "${dir_output}"
+* Create the working-data folders if they do not exist yet
+capture mkdir "$dir_w/input/${country}/DoFilesTargets"
 capture mkdir "${dir_working_data}"
+
+* Official population by cell, and the program popproj_weight
+do "${dir_w}/input_processing/alignment_targets/${country}/00_popproj_weights.do"
 
 
 * Initialise file that will store retirement shares for all years. Start from
 * an empty file, so that shares saved by an earlier run are not exported again.
 clear
-save "${dir_working_data}/retirement_shares_${country}_initpopdata.dta", emptyok replace
+save "${dir_working_data}/retirement_shares_${country}_initpopdata_popproj.dta", emptyok replace
 
 
 * ========================================================================== *
@@ -83,18 +96,21 @@ foreach y of numlist $min_year/$max_year {
 
 	bys idPers: keep if _n == 1 // keep one obs per idPers
 
+	* Weight on the official gender x region x age mix: wgtPopProj
+	popproj_weight `y'
+
 	// Alignment target: share of retired persons among those aged
 	// min_age_to_retire or older with non-missing labC4
 	gen byte isRetired = (labC4 == 4)
     collapse (mean) retired_share = isRetired ///
-        if (labC4 != . & demAge != . & demAge >= ${min_age_to_retire}) [pw = wgtCrossMainSurvey]
+        if (labC4 != . & demAge != . & demAge >= ${min_age_to_retire}) [pw = wgtPopProj]
 
 	gen year = `y'
 
 	* Append to cumulative file for all years
-	append using "${dir_working_data}/retirement_shares_${country}_initpopdata.dta"
+	append using "${dir_working_data}/retirement_shares_${country}_initpopdata_popproj.dta"
 	duplicates drop
-	save "${dir_working_data}/retirement_shares_${country}_initpopdata.dta", replace
+	save "${dir_working_data}/retirement_shares_${country}_initpopdata_popproj.dta", replace
 
 }
 
@@ -103,7 +119,7 @@ foreach y of numlist $min_year/$max_year {
 * -------------------------------------------------------------------------- *
 
 
-use "${dir_working_data}/retirement_shares_${country}_initpopdata.dta", clear
+use "${dir_working_data}/retirement_shares_${country}_initpopdata_popproj.dta", clear
 
 * Sort by year for neat export
 sort year
@@ -134,7 +150,7 @@ putexcel A2=("Target")      B2=("Share of retired persons among persons aged ${m
 putexcel A3=("Population")  B3=("Persons in the initial population aged ${min_age_to_retire}+ with non-missing labC4")
 putexcel A4=("Definition")  B4=("labC4 == 4 (Retired)")
 putexcel A5=("Age filter")  B5=("demAge >= ${min_age_to_retire} (MIN_AGE_TO_RETIRE in parameters.xlsx; RetirementAlignment and AlignmentStatistics use the same population)")
-putexcel A6=("Weighting")   B6=("Population weights (wgtCrossMainSurvey)")
+putexcel A6=("Weighting")   B6=("wgtPopProj = wgtCrossMainSurvey x official count / survey weighted count in the person's gender x region x age cell (ages ${popproj_top_age}+ pooled; align_popProjections.xlsx, 00_popproj_weights.do)")
 putexcel A7=("Source")      B7=("EU-SILC-based SimPaths initial populations")
 putexcel A8=("Country")     B8=("${country}")
 putexcel A9=("Years")       B9=("${min_year}-${max_year}")
