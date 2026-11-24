@@ -2,7 +2,7 @@
 // Plot ES alignment targets from Excel workbooks
 //
 // Authors:        Mariia Vartuzova (MV)
-// Last update:    18/08/2026 (MV)
+// Last update:    19/11/2026 (MV)
 // Country:        ES (Spain)
 //
 // Reads disability, inSchool, partnered, retirement, and employment targets
@@ -27,7 +27,7 @@ clear all
 set more off
 
 // Directories
-global dir_w   "~/IdeaProjects/SimPathsEU_AUG"
+global dir_w   "~/IdeaProjects/SimPathsEU_OCT"
 global dir_in  "${dir_w}/input/ES"
 global dir_out "${dir_w}/input/ES/DoFilesTargets/TargetsPlots"
 

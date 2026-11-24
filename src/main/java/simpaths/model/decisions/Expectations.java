@@ -499,7 +499,7 @@ public class Expectations {
 
     private double getHourlyWageRate(int labourHoursWeekly) {
 
-        if (labourHoursWeekly >= Parameters.MIN_HOURS_FULL_TIME_EMPLOYED) {
+        if (labourHoursWeekly > Parameters.MAX_HOURS_PART_TIME) { // full-time as the wage equations define it (Pt)
             return fullTimeHourlyEarningsPotential;
         } else {
             double ptPremium;

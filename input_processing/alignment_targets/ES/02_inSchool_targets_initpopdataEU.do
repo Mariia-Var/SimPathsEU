@@ -3,7 +3,7 @@
 * SECTION:        ALIGNMENT PROCEDURES
 *
 * AUTHORS:        Mariia Vartuzova (MV)
-* LAST UPDATE:    18/08/2026 (MV)
+* LAST UPDATE:    24/11/2026 (MV)
 * COUNTRY:        ES (Spain)
 *
 * DATA:           Initial populations
@@ -15,6 +15,14 @@
 *                  - Computes student ratio to total population for each year
 *                  - Exports the results to Excel
 *
+* WEIGHTS:        Each person's wgtCrossMainSurvey is multiplied by the
+*                official count over the survey weighted count in their
+*                gender x region x age cell (00_popproj_weights.do). The
+*                target is then computed on the age mix of the official
+*                population, which SimPaths simulates, not on the
+*                survey's own mix. The version on the survey's mix is
+*                kept as 02_inSchool_targets_initpopdataEU_NotPopProjAgeNormalised.do.
+*
 * NOTE:           This EU version uses refactored variable names from the
 *                initial populations (e.g., idPers, demAge, labC4,
 *                wgtCrossMainSurvey).
@@ -23,9 +31,13 @@
 *                retain the camelCase column names of the refactored
 *                initial-population CSVs.
 *
-* SET-UP:         1. Update the working directory path (global dir_w)
-*                 2. Copy the relevant input data into the /input_data folder
-*                    under the country-specific subdirectory
+* SET-UP:         1. Set global dir_w to the root of this SimPaths project
+*                 2. The initial populations are read from
+*                    input/<country>/InitialPopulations of that project, and
+*                    the official population from
+*                    input/<country>/align_popProjections.xlsx. The workbook
+*                    is written to input/<country>/DoFilesTargets; copy it to
+*                    input/<country>/ for SimPaths to use it
 *
 *******************************************************************************/
 
@@ -35,7 +47,7 @@ clear all
 * --- DEFINE GLOBALS -------------------------------------------------------- *
 
 * Working directory (project root)
-global dir_w "~/IdeaProjects/SimPathsEU_AUG"
+global dir_w "~/IdeaProjects/SimPathsEU_OCT"
 
 * Country code and time span for which targets are produced
 global country = "ES"
@@ -47,9 +59,16 @@ global dir_input_data   "$dir_w/input/${country}/InitialPopulations"
 global dir_working_data "$dir_w/input/${country}/DoFilesTargets/working_data"
 global dir_output       "$dir_w/input/${country}/DoFilesTargets"
 
+* Create the output folders if they do not exist yet
+capture mkdir "${dir_output}"
+capture mkdir "${dir_working_data}"
+
+* Official population by cell, and the program popproj_weight
+do "${dir_w}/input_processing/alignment_targets/${country}/00_popproj_weights.do"
+
 * Initialise file that will store student shares for all years
 clear
-save "${dir_working_data}/student_shares_${country}_initpopdata.dta", emptyok replace
+save "${dir_working_data}/student_shares_${country}_initpopdata_popproj.dta", emptyok replace
 
 * ========================================================================== *
 
@@ -62,16 +81,19 @@ foreach y of numlist $min_year/$max_year {
 
 	bys idPers: keep if _n == 1 // keep one obs per idPers
 
+	* Weight on the official gender x region x age mix: wgtPopProj
+	popproj_weight `y'
+
 	// Alignment target: share of students among 16-29 age group, defined in SimPathsModel.java
 	gen byte isStudent = (labC4 == 2 & demAge >= 16 & demAge <= 29)
-    collapse (mean) student_share = isStudent if (labC4 != . & demAge >= 16 & demAge <= 29) [pw = wgtCrossMainSurvey]
+    collapse (mean) student_share = isStudent if (labC4 != . & demAge >= 16 & demAge <= 29) [pw = wgtPopProj]
 
 	gen year = `y'
 
 	* Append to cumulative file for all years
-	append using "${dir_working_data}/student_shares_${country}_initpopdata.dta"
+	append using "${dir_working_data}/student_shares_${country}_initpopdata_popproj.dta"
 	duplicates drop
-	save "${dir_working_data}/student_shares_${country}_initpopdata.dta", replace
+	save "${dir_working_data}/student_shares_${country}_initpopdata_popproj.dta", replace
 
 }
 
@@ -80,12 +102,16 @@ foreach y of numlist $min_year/$max_year {
 * -------------------------------------------------------------------------- *
 
 
-use "${dir_working_data}/student_shares_${country}_initpopdata.dta", clear
+use "${dir_working_data}/student_shares_${country}_initpopdata_popproj.dta", clear
 
 * Sort by year for neat export
 sort year
 
 * Create/overwrite Excel file that will hold all sheets
+* Start from a new workbook. putexcel applies replace only at its first
+* write, so an existing workbook would otherwise be modified, and its styles
+* duplicated on every run (until Apache POI in SimPaths rejects the file)
+capture erase "${dir_output}/alignment_targets_inSchool.xlsx"
 putexcel set "${dir_output}/alignment_targets_inSchool.xlsx", replace
 
 
@@ -111,10 +137,17 @@ putexcel A2=("Target")      B2=("Share of students among persons aged 16-29 with
 putexcel A3=("Population")  B3=("Persons aged 16-29 with non-missing labC4")
 putexcel A4=("Definition")  B4=("labC4 == 2 (Student) & demAge >= 16 & demAge <= 29")
 putexcel A5=("Age filter")  B5=("16-29 (matching SimPathsModel inSchool alignment window)")
-putexcel A6=("Weighting")   B6=("Population weights (wgtCrossMainSurvey)")
+putexcel A6=("Weighting")   B6=("wgtPopProj = wgtCrossMainSurvey x official count / survey weighted count in the person's gender x region x age cell (ages ${popproj_top_age}+ pooled; align_popProjections.xlsx, 00_popproj_weights.do)")
 putexcel A7=("Source")      B7=("EU-SILC-based SimPaths initial populations")
 putexcel A8=("Country")     B8=("${country}")
 putexcel A9=("Years")       B9=("${min_year}-${max_year}")
 putexcel A10=("Do-file")    B10=("02_inSchool_targets_initpopdataEU.do")
 putexcel A11=("Produced")   B11=("`today'")
 
+
+* --- CLEAN UP ------------------------------------------------------------- *
+* The workbook is the only output: erase the working data, then the
+* working-data folder if nothing else is left in it
+erase "${dir_working_data}/student_shares_${country}_initpopdata_popproj.dta"
+erase "${dir_working_data}/popproj_cells_${country}.dta"
+capture rmdir "${dir_working_data}"

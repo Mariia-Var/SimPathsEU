@@ -2,7 +2,7 @@
 // Plot PL alignment targets from Excel workbooks
 //
 // Authors:        MV
-// Last update:    30/03/2026
+// Last update:    19/11/2026
 // Country:        PL
 //
 // Reads disability, inSchool, partnered, retirement, and employment targets
@@ -24,7 +24,7 @@ clear all
 set more off
 
 // Directories
-global dir_w   "/Users/pineapple/IdeaProjects/SimPathsEU_APR"
+global dir_w   "/Users/pineapple/IdeaProjects/SimPathsEU_OCT"
 global dir_in  "${dir_w}/input/PL"
 global dir_out "${dir_w}/input/PL/DoFilesTargets/TargetsPlots"
 

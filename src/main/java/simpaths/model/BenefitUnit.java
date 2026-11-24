@@ -387,6 +387,19 @@ public class BenefitUnit implements EventListener, IDoubleSource, Weight, Compar
         if (hasDisposableIncome) {
             yDispMonth = disposableIncome;
         }
+
+        // Equivalised gross non-benefit income of the responsible adults (asinh), as the income step of the labour
+        // market update defines it. That step does not run in the start year, so without this the collector would
+        // take the start year's quintile cut-offs (Ydses_c5) from zeros, and in the next year every unit with any
+        // income would be put in Q5 and the rest in Q1.
+        double ypnbihsAdults = 0.0;
+        Person male = getMale();
+        Person female = getFemale();
+        if (male != null && male.getYpnbihs_dv() != null)
+            ypnbihsAdults += Math.sinh(male.getYpnbihs_dv());
+        if (female != null && female.getYpnbihs_dv() != null)
+            ypnbihsAdults += Math.sinh(female.getYpnbihs_dv());
+        i_yNonBenHhGrossAsinh = asinh(ypnbihsAdults / getEquivalisedWeight());
     }
 
     protected void updateAttributes() {
@@ -4162,6 +4175,19 @@ public class BenefitUnit implements EventListener, IDoubleSource, Weight, Compar
                 children.add(member);
         }
         return children;
+    }
+
+    /**
+     * Members aged {@link Parameters#AGE_TO_BECOME_RESPONSIBLE} or older: the unit's responsible adults, whose
+     * incomes make up its non-benefit income. A person sets up their own unit at that age, so the rest are children.
+     */
+    public int getNumberAdults() {
+        int nAdults = 0;
+        for (Person member : members) {
+            if (member.getDag() >= Parameters.AGE_TO_BECOME_RESPONSIBLE)
+                nAdults++;
+        }
+        return nAdults;
     }
 
     public Long getIdFemale() {

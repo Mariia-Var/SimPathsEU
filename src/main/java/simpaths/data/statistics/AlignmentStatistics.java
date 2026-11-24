@@ -8,6 +8,7 @@ import simpaths.data.Parameters;
 import simpaths.data.filters.FertileFilter;
 import simpaths.model.BenefitUnit;
 import simpaths.model.Person;
+import simpaths.model.RetirementAlignment;
 import simpaths.model.SimPathsModel;
 import simpaths.model.enums.Dcpst;
 import simpaths.model.enums.Indicator;
@@ -361,15 +362,16 @@ public class AlignmentStatistics {
         setFertilityRateSimulated(val);
         setFertilityRateTarget(Parameters.getFertilityRateByYear(processedYear));
 
-        // retirement
+        // retirement: share retired among persons aged MIN_AGE_TO_RETIRE or older, the population of the target
         setRetirementAdjustmentFactor(model.getRetirementAdjustment(processedYear));
-        long numWithLes = model.getPersons().stream()
-                .filter(person -> person.getLes_c4() != null)
+        long numRetirementTargetPopulation = model.getPersons().stream()
+                .filter(RetirementAlignment::inTargetPopulation)
                 .count();
         long numRetired = model.getPersons().stream()
-                .filter(person -> Les_c4.Retired.equals(person.getLes_c4()))
+                .filter(person -> RetirementAlignment.inTargetPopulation(person)
+                        && Les_c4.Retired.equals(person.getLes_c4()))
                 .count();
-        val = (numWithLes > 0) ? (double) numRetired / numWithLes : 0.0;
+        val = (numRetirementTargetPopulation > 0) ? (double) numRetired / numRetirementTargetPopulation : 0.0;
         setRetirementShareSimulated(val);
         setRetirementShareTarget(Parameters.getTargetShare(processedYear, TargetShares.Retirement));
 

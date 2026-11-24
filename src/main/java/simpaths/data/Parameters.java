@@ -181,6 +181,7 @@ public class Parameters {
 
 
     public static int MIN_AGE_TO_RETIRE = 50; //Minimum age to consider retirement
+    public static final int MAX_YEARS_IN_PAID_WORK = 55; // upper censoring of liwwh (years in paid work) in 02_create_variables_<CC>.do
     public static int DEFAULT_AGE_TO_RETIRE = 67; //if pension included, but retirement decision not
     public static int MIN_AGE_FLEXIBLE_LABOUR_SUPPLY = 16; //Used when filtering people who can be "flexible in labour supply"
     public static int MAX_AGE_FLEXIBLE_LABOUR_SUPPLY = 75;
@@ -188,6 +189,9 @@ public class Parameters {
     public static double ANNUITY_RATE_OF_RETURN = 0.015;
 
     public static int MIN_HOURS_FULL_TIME_EMPLOYED = 25;    // used to distinguish full-time from part-time employment (needs to be consistent with Labour enum)
+    public static int MAX_HOURS_PART_TIME = 25;     // part-time in the wage equations (W1): 1 to this many weekly hours, as pt in 08_reg_wages_<CC>.do
+                                                    // (PL 25, ES 35). Hours up to it get the W1 part-time effect (Person.getHourlyWageRate). PL counts
+                                                    // 25 hours as part-time here although its MIN_HOURS_FULL_TIME_EMPLOYED is also 25
     public static int MIN_HOURS_EMPLOYED = 6;    // minimum weekly hours to count as employed (ES 6, PL 1): persons employed on fewer hours are recoded to not employed
                                                 // at setup (DataParser.marginalEmploymentRecode),
                                                 // and fewer hours convert to Labour.ZERO. Must equal the lower limit of the country's first positive band in Labour (checkLabourBandLimits)
