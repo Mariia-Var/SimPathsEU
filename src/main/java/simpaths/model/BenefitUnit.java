@@ -4177,6 +4177,19 @@ public class BenefitUnit implements EventListener, IDoubleSource, Weight, Compar
         return children;
     }
 
+    /**
+     * Members aged {@link Parameters#AGE_TO_BECOME_RESPONSIBLE} or older: the unit's responsible adults, whose
+     * incomes make up its non-benefit income. A person sets up their own unit at that age, so the rest are children.
+     */
+    public int getNumberAdults() {
+        int nAdults = 0;
+        for (Person member : members) {
+            if (member.getDag() >= Parameters.AGE_TO_BECOME_RESPONSIBLE)
+                nAdults++;
+        }
+        return nAdults;
+    }
+
     public Long getIdFemale() {
         Person female = getFemale();
         if (female != null)
