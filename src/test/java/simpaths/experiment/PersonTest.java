@@ -301,10 +301,10 @@ public class PersonTest {
         @Test
         @DisplayName("New_rel_L1 is one only for a partnership formed in last year's union matching")
         public void newRelLagFlagsNewPartnership() throws Exception {
-            setPrivateField(testPerson, "demNewPartnerFlagL1", true);
+            setPrivateField(testPerson, "demPartnerFirstYearFlagL1", true);
             assertEquals(1.0, testPerson.getDoubleValue(Person.DoublesVariables.New_rel_L1));
 
-            setPrivateField(testPerson, "demNewPartnerFlagL1", false);
+            setPrivateField(testPerson, "demPartnerFirstYearFlagL1", false);
             assertEquals(0.0, testPerson.getDoubleValue(Person.DoublesVariables.New_rel_L1));
         }
 

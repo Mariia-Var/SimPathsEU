@@ -144,8 +144,8 @@ public class Person implements EventListener, IDoubleSource, IIntSource, Weight,
     @Transient private LinkedHashMap<Integer, Double> sIndexYearMap;
     private Integer demPartnerNYear; //Number of years in partnership
     @Transient private Integer demPartnerNYearL1; //Lag(1) of number of years in partnership
-    @Transient private boolean demNewPartnerFlag; // partnership formed in this year's union matching (Stata new_rel)
-    @Transient private boolean demNewPartnerFlagL1; // Lag(1) of demNewPartnerFlag (New_rel_L1)
+    private boolean demPartnerFirstYearFlag; // partnership formed this year (Stata new_rel): loaded from the initial population (DataParser), then set by this year's union matching
+    @Transient private boolean demPartnerFirstYearFlagL1; // Lag(1) of demPartnerFirstYearFlag (New_rel_L1)
     private Double yNonBenPersGrossMonth; // asinh of personal non-benefit income per month
     @Transient private Double yNonBenPersGrossMonthL1; //Lag(1) of gross personal non-benefit income
     @Transient private Ydses_c5 yHhQuintilesC5L1; //Lag(1) income quintile of the benefit unit the person was in last year (Ydses_c5_*_L1); kept per person, see updateLaggedVariables
@@ -395,8 +395,8 @@ public class Person implements EventListener, IDoubleSource, IIntSource, Weight,
 
         labStatusPartnerAndOwnC4L1 = originalPerson.labStatusPartnerAndOwnC4L1;
         demPartnerStatusL1 = originalPerson.demPartnerStatusL1;
-        demNewPartnerFlag = originalPerson.demNewPartnerFlag;
-        demNewPartnerFlagL1 = originalPerson.demNewPartnerFlagL1;
+        demPartnerFirstYearFlag = originalPerson.demPartnerFirstYearFlag;
+        demPartnerFirstYearFlagL1 = originalPerson.demPartnerFirstYearFlagL1;
         yNonBenPersGrossMonth = originalPerson.getYpnbihs_dv();
         yNonBenPersGrossMonthL1 = originalPerson.yNonBenPersGrossMonthL1;
         yHhQuintilesC5L1 = originalPerson.yHhQuintilesC5L1;
@@ -776,7 +776,7 @@ public class Person implements EventListener, IDoubleSource, IIntSource, Weight,
                 demPartnerNYear = 0;
         } else
             demPartnerNYear = 0;
-        demNewPartnerFlag = false;
+        demPartnerFirstYearFlag = false;
 
         // iterate employment history
         if (Les_c4.EmployedOrSelfEmployed.equals(labC4)) {
@@ -1575,7 +1575,7 @@ public class Person implements EventListener, IDoubleSource, IIntSource, Weight,
 
         // partnership formed last year (New_rel_L1). Not reset here: Update also runs twice before the first
         // simulated year, and the flag is cleared in aging(), which runs only in simulated years
-        demNewPartnerFlagL1 = demNewPartnerFlag;
+        demPartnerFirstYearFlagL1 = demPartnerFirstYearFlag;
 
         // partner variables
         Person partner = getPartner();
@@ -3082,7 +3082,7 @@ public class Person implements EventListener, IDoubleSource, IIntSource, Weight,
                 return yMiscPersGrossMonthL3;
             }
             case New_rel_L1 -> { // partnership formed last year (Stata l.new_rel)
-                return demNewPartnerFlagL1 ? 1. : 0.;
+                return demPartnerFirstYearFlagL1 ? 1. : 0.;
             }
             case Ypncp_L1 -> {
                 return yCapitalPersMonthL1;
@@ -4138,7 +4138,7 @@ public class Person implements EventListener, IDoubleSource, IIntSource, Weight,
      */
     public void startPartnership() {
         demPartnerNYear = 1;
-        demNewPartnerFlag = true;
+        demPartnerFirstYearFlag = true;
     }
 
     public void setDcpyy(Integer demPartnerNYear) {
