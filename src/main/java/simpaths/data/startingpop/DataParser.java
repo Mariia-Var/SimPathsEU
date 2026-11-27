@@ -80,7 +80,7 @@ public class DataParser {
 				//Refresh table
 				"DROP TABLE IF EXISTS " + inputFileName + " CASCADE;"
 				+ "CREATE TABLE " + inputFileName + " AS SELECT * FROM CSVREAD(\'" + inputFileLocation + "\');"
-				//demPartnerFirstYearFlag (Stata new_rel) as missing where the CSV lacks it (at present ES and the training data)
+				//demPartnerFirstYearFlag (Stata new_rel) as missing where the CSV lacks it (at present ES, real and training data)
 				+ "ALTER TABLE " + inputFileName + " ADD COLUMN IF NOT EXISTS demPartnerFirstYearFlag INT DEFAULT -9;"
 				+ "DROP TABLE IF EXISTS " + personTable + " CASCADE;"
 				+ "CREATE TABLE " + personTable + " AS (SELECT " + stringAppender(inputPersonColumnNamesSet) + " FROM " + inputFileName + ");"

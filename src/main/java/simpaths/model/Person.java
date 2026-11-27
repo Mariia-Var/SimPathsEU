@@ -1881,6 +1881,7 @@ public class Person implements EventListener, IDoubleSource, IIntSource, Weight,
         Dehsp_c4_Low_L1,				//Partner's education == Low at lag(1)
         Dehsp_c4_Medium_L1,				//Partner's education == Medium at lag(1)
         Dehsp_c4_High_L1,
+        Dehsp_c4_Na_L1,					//Partner's education == NotAssigned at lag(1)
 
         Dehf_c4_High,					//Father's education == High indicator
         Dehf_c4_Low,					//Father's education == Low indicator
@@ -2418,6 +2419,9 @@ public class Person implements EventListener, IDoubleSource, IIntSource, Weight,
             }
             case Dehsp_c4_High_L1 -> {
                 return (Education.High.equals(eduDehspC4L1)) ? 1. : 0.;
+            }
+            case Dehsp_c4_Na_L1 -> { // Stata l.Dehsp_c4_Na: last year's partner had dehsp_c4 == 0, under 16 or in initial education
+                return (Education.NotAssigned.equals(eduDehspC4L1)) ? 1. : 0.;
             }
 
             case Dnc_L1 -> {
