@@ -118,7 +118,7 @@ putexcel A9 = "Source - wage_growth:" ///
     B9 = "Eurostat annual Labour Cost Index (lc_lci_r2_a). The wages and salaries component (D11) for industry, construction and services (B-S) is used. The nominal LCI is rebased to 2015 = 100 and deflated using the all-items HICP index to construct a real wage index. The annual percentage growth rate of this real wage index is also provided."
 
 putexcel A10 = "Units / interpretation:" ///
-    B10 = "The gdp and inflation sheets store index values. In the wage_growth sheet, Value is the real wage index (2015 = 100) constructed from the deflated Labour Cost Index, while Growth is its year-on-year percentage change. The model treats the index series as relative series and rebases them to BASE_PRICE_YEAR (currently 2015) after loading."
+    B10 = "The gdp and inflation sheets store index values. In the wage_growth sheet, Value is the real wage index (2015 = 100) constructed from the deflated Labour Cost Index. The model treats the index series as relative series and rebases them to BASE_PRICE_YEAR (currently 2015) after loading. The wage_growth_rate sheet stores Growth, the year-on-year percentage change of the real wage index; the model does not read it."
 
 putexcel A11 = "Coverage in current workbook:" ///
     B11 = "gdp: 1995-2025; inflation: 1996-2025; wage_growth: 2000-2025."
@@ -130,13 +130,13 @@ putexcel A13 = "How inflation is used:" ///
     B13 = "Mapped to UpratingCase.TaxDonor. After rebasing, it is used to normalise donor-tax-system monetary values between policy-system years and the model base-price year."
 
 putexcel A14 = "How wage_growth is used:" ///
-    B14 = "Mapped to UpratingCase.Earnings and passed into the person-level wage regressions through the RealWageGrowth regressor. The wage_growth sheet contains both the real wage index (Value) and its annual percentage growth rate (Growth) so that alternative specifications can be explored."
+    B14 = "Mapped to UpratingCase.Earnings and passed into the person-level wage regressions through the RealWageGrowth regressor. Its annual percentage growth rate (Growth) is kept in the wage_growth_rate sheet so that alternative specifications can be explored."
 
 putexcel A15 = "Date produced / maintenance note:" ///
     B15 = "Workbook first prepared for Poland in 2025. Oragnized and standardardized in 3/11/26."
 
 putexcel A16 = "NOTE:" ///
-    B16 = "All cells read by the model should contain plain numeric data only. The wage_growth sheet contains Year, Value (real wage index), and Growth (annual percentage change in the real wage index). Remove formulas, merged headers, and non-numeric values from active sheets."
+    B16 = "All cells read by the model should contain plain numeric data only. The wage_growth sheet contains Year and Value (real wage index) only: the model reads every column after Year as a value, so a second column there breaks loading. Growth (annual percentage change in the real wage index) is in the wage_growth_rate sheet. Remove formulas, merged headers, and non-numeric values from active sheets."
 
 putexcel A1:A16, bold
 

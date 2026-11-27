@@ -105,8 +105,15 @@ order Year Value Growth
 	
 ******************************* Export to Excel ********************************
 
-export excel Year Value Growth using ///
+* SimPaths reads every column after Year in wage_growth as a value, so the
+* sheet holds Year and Value only. Growth goes to its own sheet, which the
+* model does not read.
+export excel Year Value using ///
 	"$dir_work/time_series_factor${country}.xlsx", sheet("wage_growth") ///
+	sheetmodify firstrow(variables)
+
+export excel Year Growth using ///
+	"$dir_work/time_series_factor${country}.xlsx", sheet("wage_growth_rate") ///
 	sheetmodify firstrow(variables)
 
 

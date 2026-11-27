@@ -411,13 +411,14 @@ with the approach used for the other SimPaths EU countries.
  
 ****************************** Export to Excel *********************************
 	
+* Sheet name read by SimPaths (Parameters.loadParameters)
 export excel using "$dir_work/projections_mortality${country}.xlsx", ///
-	firstrow(var) sheet("${country}") replace
-	
-	
+	firstrow(var) sheet("MortalityByGenderAgeYear") replace
+
+
 * Replace Excel column headings with calendar years
 putexcel set "$dir_work/projections_mortality${country}.xlsx", ///
-	sheet("${country}") modify
+	sheet("MortalityByGenderAgeYear") modify
 
 local col = 3    // Column C: Gender=A, Age=B
 

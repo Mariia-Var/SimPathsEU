@@ -331,12 +331,13 @@ drop factor y2025_proj freq_unit_age_geo
 	
 ******************************* Export to Excel ********************************
 
+* Sheet name read by SimPaths (Parameters.loadParameters)
 export excel using "$dir_work/align_popProjections${country}.xlsx", ///
-	firstrow(var) sheet("${country}") replace
+	firstrow(var) sheet("Population_projections") replace
 
-* Replace Excel column headings with calendar years	
+* Replace Excel column headings with calendar years
 putexcel set "$dir_work/align_popProjections${country}.xlsx", ///
-    sheet("${country}") modify
+    sheet("Population_projections") modify
 
 local col = 4    // A=Gender, B=Region, C=Age, D=2011
 

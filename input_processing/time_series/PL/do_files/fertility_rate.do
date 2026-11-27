@@ -234,8 +234,9 @@ putexcel A11 = "NOTE:" ///
     B11 = "All cells read by the model should contain plain numeric year/value data only. Remove formulas, merged headers and non-numeric values from active sheets."
 
 
+* Sheet name read by SimPaths (Parameters.loadParameters)
 putexcel set "$dir_work/projections_fertility${country}.xlsx", ///
-	sheet("${country}") modify 
+	sheet("FertilityByYear") modify
 
 putexcel A1 = "Fertility"
 putexcel A2 = "Value"	 
